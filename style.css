@@ -534,13 +534,13 @@ body.light-mode #show-keycode-list-btn:hover {
 }
 
 .key-square {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
 }
 
 .key-rect {
-    width: 80px;
-    height: 175px; /* 80*2 + 15 */
+    width: 100px;
+    height: 215px; /* 100*2 + 15 */
 }
 
 .modal-container {
@@ -1026,6 +1026,7 @@ body.light-mode .keycode-entry .code {
     text-align: center;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     border: 1px solid var(--border-color-light);
+    white-space:pre-line;
 }
 
 body.light-mode .custom-modal-content {

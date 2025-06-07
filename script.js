@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const keys = document.querySelectorAll('.key');
     const profileSlots = document.querySelectorAll('.profile-slot');
     const resetLightsBtn = document.getElementById('reset-lights-btn');
+    const resetKeyBtn = document.getElementById('reset-key-btn');
     const resetAllBtn = document.getElementById('reset-all-btn');
     const saveConfigBtn = document.getElementById('save-config-btn');
     const loadConfigBtn = document.getElementById('load-config-btn');
@@ -320,10 +321,10 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function setConnectButtonState(isConnected) {
         if (isConnected) {
-            connectBtn.textContent = '写入配置 ✅';
+            connectBtn.textContent = '点我写入配置 ✅';
             connectBtn.style.backgroundColor = '#27ae60'; // Green
         } else {
-            connectBtn.textContent = '连接设备 🔌';
+            connectBtn.textContent = '点我连接设备喵';
             connectBtn.style.backgroundColor = ''; // Revert to default CSS color
         }
     }
@@ -438,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * This is now a local-only operation.
      */
     async function handleResetLights() {
-        const confirmed = await showCustomConfirm('确定要重置当前配置文件的所有灯光吗？\r\n✨ 这个操作是本地的，需要点击写入才会生效哦~');
+        const confirmed = await showCustomConfirm('确定要重置当前配置文件的所有灯光吗？\n✨ 这个操作是本地的，需要写入手台才会生效哦~');
         if (!confirmed) {
             return;
         }
@@ -458,12 +459,12 @@ document.addEventListener('DOMContentLoaded', () => {
      * Resets all key assignments for the current profile.
      * This is a local-only operation.
      */
-    async function handleResetAll() {
+    async function handleResetKey() {
         if (currentProfile === 0) {
             showCustomAlert('喵呜！IO模式下的按键是固定的，不能重置哦~ (づ｡◕‿‿◕｡)づ');
             return;
         }
-        const confirmed = await showCustomConfirm('确定要重置当前配置文件的所有按键吗？\r\n⌨️ 这个操作是本地的，需要点击写入才会生效哦~');
+        const confirmed = await showCustomConfirm('确定要重置当前配置文件的所有按键吗？\n⌨️ 这个操作是本地的，需要写入手台才会生效哦~');
         if (!confirmed) {
             return;
         }
@@ -480,6 +481,29 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('当前配置文件的所有按键已在本地重置喵~');
     }
 
+    async function handleResetAll() {
+        const confirmed = await showCustomConfirm('确定要重置当前配置文件吗？\n💥 这个操作是本地的，需要写入手台才会生效哦~');
+        if (!confirmed) {
+            return;
+        }
+        Object.keys(profiles[currentProfile]).forEach(keyId => {
+            if (profiles[currentProfile][keyId]) {
+               delete profiles[currentProfile][keyId].color;
+            }
+        });
+        if (currentProfile !== 0) {
+            Object.keys(profiles[currentProfile]).forEach(keyId => {
+                if (profiles[currentProfile][keyId]) {
+                   delete profiles[currentProfile][keyId].keyCode;
+                   delete profiles[currentProfile][keyId].keyDisplay;
+                }
+            });
+        }
+
+        saveProfiles();
+        updateKeyAppearances();
+        console.log('当前配置文件已重置喵~');
+    }
     /**
      * Builds a 64-byte packet and sends it to the device.
      */
@@ -738,6 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.addEventListener('click', handleSave);
     closeBtn.addEventListener('click', hideModal);
     resetLightsBtn.addEventListener('click', handleResetLights);
+    resetKeyBtn.addEventListener('click', handleResetKey);
     resetAllBtn.addEventListener('click', handleResetAll);
     saveConfigBtn.addEventListener('click', handleSaveToFile);
     loadConfigBtn.addEventListener('click', () => loadConfigInput.click());
