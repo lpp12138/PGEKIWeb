@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PGEKI HID Controller</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="profiles">
+                <div class="profile-slot active">1</div>
+                <div class="profile-slot">2</div>
+                <div class="profile-slot">3</div>
+                <div class="profile-slot">4</div>
+                <div class="profile-slot">5</div>
+                <div class="profile-slot">6</div>
+            </div>
+            <button id="reset-lights-btn">重置灯光喵</button>
+        </div>
+        <div class="header-right">
+            <button id="save-config-btn">保存配置喵</button>
+            <button id="load-config-btn">载入配置喵</button>
+            <input type="file" id="load-config-input" accept=".json" style="display: none;">
+            <button id="connect-btn">连接设备喵</button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="keyboard">
+            <div class="key key-rect" data-key-id="0"></div>
+            <div class="key-group">
+                <div class="key key-square" data-key-id="1"></div>
+                <div class="key key-square" data-key-id="2"></div>
+                <div class="key key-square" data-key-id="3"></div>
+                <div class="key-separator"></div>
+                <div class="key key-square" data-key-id="4"></div>
+                <div class="key key-square" data-key-id="5"></div>
+                <div class="key key-square" data-key-id="6"></div>
+            </div>
+            <div class="key key-rect" data-key-id="7"></div>
+        </div>
+    </main>
+
+    <div id="config-modal" class="modal-container" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>配置按键喵</h2>
+            <div class="config-item">
+                <label for="key-color">颜色:</label>
+                <input type="color" id="key-color" value="#ffffff">
+            </div>
+            <div class="config-item" id="key-code-item">
+                <label for="key-code">键码:</label>
+                <input type="text" id="key-code" placeholder="例如: 0x04 (A)">
+            </div>
+            <button id="save-btn">保存喵</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
