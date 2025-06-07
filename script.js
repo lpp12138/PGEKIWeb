@@ -1,8 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
+    const themeSwitch = document.getElementById('theme-checkbox');
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const ioModeControls = document.getElementById('io-mode-controls');
+    const ioModeControlsHeader = document.getElementById('io-mode-controls-header');
     const ioLightOverrideSwitch = document.getElementById('io-light-override-switch');
     const connectBtn = document.getElementById('connect-btn');
     const modalContainer = document.getElementById('config-modal');
@@ -22,6 +24,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const recordModeDiv = document.getElementById('record-mode');
     const manualModeDiv = document.getElementById('manual-mode');
     const keyCodeInput = document.getElementById('key-code-input');
+    
+    // Keycode List Modal Elements
+    const showKeycodeListBtn = document.getElementById('show-keycode-list-btn');
+    const keycodeListModal = document.getElementById('keycode-list-modal');
+    const keycodeListCloseBtn = keycodeListModal.querySelector('.keycode-modal-close-btn');
+
+    // Custom Modal Elements
+    const customAlertModal = document.getElementById('custom-alert-modal');
+    const customAlertText = document.getElementById('custom-alert-text');
+    const customAlertOkBtn = document.getElementById('custom-alert-ok-btn');
+    const customConfirmModal = document.getElementById('custom-confirm-modal');
+    const customConfirmText = document.getElementById('custom-confirm-text');
+    const customConfirmYesBtn = document.getElementById('custom-confirm-yes-btn');
+    const customConfirmNoBtn = document.getElementById('custom-confirm-no-btn');
 
     // --- State ---
     let hidDevice = null;
@@ -35,16 +51,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Keycode Map ---
     const hidKeycodeMap = {
+        // Alphanumeric
         'KeyA': 0x04, 'KeyB': 0x05, 'KeyC': 0x06, 'KeyD': 0x07, 'KeyE': 0x08, 'KeyF': 0x09, 'KeyG': 0x0A, 'KeyH': 0x0B, 'KeyI': 0x0C, 'KeyJ': 0x0D, 'KeyK': 0x0E, 'KeyL': 0x0F, 'KeyM': 0x10, 'KeyN': 0x11, 'KeyO': 0x12, 'KeyP': 0x13, 'KeyQ': 0x14, 'KeyR': 0x15, 'KeyS': 0x16, 'KeyT': 0x17, 'KeyU': 0x18, 'KeyV': 0x19, 'KeyW': 0x1A, 'KeyX': 0x1B, 'KeyY': 0x1C, 'KeyZ': 0x1D,
         'Digit1': 0x1E, 'Digit2': 0x1F, 'Digit3': 0x20, 'Digit4': 0x21, 'Digit5': 0x22, 'Digit6': 0x23, 'Digit7': 0x24, 'Digit8': 0x25, 'Digit9': 0x26, 'Digit0': 0x27,
+        // Functional
         'Enter': 0x28, 'Escape': 0x29, 'Backspace': 0x2A, 'Tab': 0x2B, 'Space': 0x2C,
+        // Symbols
         'Minus': 0x2D, 'Equal': 0x2E, 'BracketLeft': 0x2F, 'BracketRight': 0x30, 'Backslash': 0x31,
         'Semicolon': 0x33, 'Quote': 0x34, 'Backquote': 0x35, 'Comma': 0x36, 'Period': 0x37, 'Slash': 0x38,
+        // Lock Keys
         'CapsLock': 0x39,
+        // F-Keys
         'F1': 0x3A, 'F2': 0x3B, 'F3': 0x3C, 'F4': 0x3D, 'F5': 0x3E, 'F6': 0x3F, 'F7': 0x40, 'F8': 0x41, 'F9': 0x42, 'F10': 0x43, 'F11': 0x44, 'F12': 0x45,
+        'F13': 0x68, 'F14': 0x69, 'F15': 0x6A, 'F16': 0x6B, 'F17': 0x6C, 'F18': 0x6D, 'F19': 0x6E, 'F20': 0x6F, 'F21': 0x70, 'F22': 0x71, 'F23': 0x72, 'F24': 0x73,
+        // Control Keys
         'PrintScreen': 0x46, 'ScrollLock': 0x47, 'Pause': 0x48,
         'Insert': 0x49, 'Home': 0x4A, 'PageUp': 0x4B, 'Delete': 0x4C, 'End': 0x4D, 'PageDown': 0x4E,
         'ArrowRight': 0x4F, 'ArrowLeft': 0x50, 'ArrowDown': 0x51, 'ArrowUp': 0x52,
+        // Modifiers
+        'ControlLeft': 0xE0, 'ShiftLeft': 0xE1, 'AltLeft': 0xE2, 'MetaLeft': 0xE3,
+        'ControlRight': 0xE4, 'ShiftRight': 0xE5, 'AltRight': 0xE6, 'MetaRight': 0xE7,
+        // Numpad
+        'NumLock': 0x53, 'NumpadDivide': 0x54, 'NumpadMultiply': 0x55, 'NumpadSubtract': 0x56,
+        'NumpadAdd': 0x57, 'NumpadEnter': 0x58,
+        'Numpad1': 0x59, 'Numpad2': 0x60, 'Numpad3': 0x61, 'Numpad4': 0x62,
+        'Numpad5': 0x5D, 'Numpad6': 0x5E, 'Numpad7': 0x5F, 'Numpad8': 0x60,
+        'Numpad9': 0x61, 'Numpad0': 0x62, 'NumpadDecimal': 0x63,
+        // Media Keys (Consumer Page)
+        'AudioVolumeUp': 0xE9, 'AudioVolumeDown': 0xEA, 'AudioMute': 0xE2,
+        'MediaPlayPause': 0xCD, 'MediaStop': 0xB7, 'MediaTrackNext': 0xB5, 'MediaTrackPrevious': 0xB6,
     };
 
     const keyCodeToDisplayMap = Object.entries(hidKeycodeMap).reduce((acc, [key, code]) => {
@@ -64,7 +99,47 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (key === 'Slash') display = '/';
         acc[code] = display;
         return acc;
-    }, {});
+    }, {
+        // Add custom display names for clarity
+        0xE0: 'L-Ctrl', 0xE1: 'L-Shift', 0xE2: 'L-Alt', 0xE3: 'L-Win',
+        0xE4: 'R-Ctrl', 0xE5: 'R-Shift', 0xE6: 'R-Alt', 0xE7: 'R-Win',
+        0x53: 'NumLk', 0x54: '/', 0x55: '*', 0x56: '-', 0x57: '+', 0x58: 'Enter',
+        0x59: '1', 0x60: '2', 0x61: '3', 0x62: '4',
+        0x5D: '5', 0x5E: '6', 0x5F: '7', 0x60: '8',
+        0x61: '9', 0x62: '0', 0x63: '.',
+        0xE9: 'Vol+', 0xEA: 'Vol-', 0xE2: 'Mute',
+        0xCD: 'Play', 0xB7: 'Stop', 0xB5: 'Next', 0xB6: 'Prev',
+    });
+
+    // --- Custom Modal Functions ---
+    function showCustomAlert(message) {
+        customAlertText.textContent = message;
+        customAlertModal.style.display = 'flex';
+    }
+
+    function showCustomConfirm(message) {
+        return new Promise((resolve) => {
+            customConfirmText.textContent = message;
+            customConfirmModal.style.display = 'flex';
+
+            const yesListener = () => {
+                customConfirmModal.style.display = 'none';
+                customConfirmYesBtn.removeEventListener('click', yesListener);
+                customConfirmNoBtn.removeEventListener('click', noListener);
+                resolve(true);
+            };
+
+            const noListener = () => {
+                customConfirmModal.style.display = 'none';
+                customConfirmYesBtn.removeEventListener('click', yesListener);
+                customConfirmNoBtn.removeEventListener('click', noListener);
+                resolve(false);
+            };
+
+            customConfirmYesBtn.addEventListener('click', yesListener);
+            customConfirmNoBtn.addEventListener('click', noListener);
+        });
+    }
 
     // --- Functions ---
 
@@ -117,41 +192,64 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Shows the configuration modal.
      * @param {string} keyId - The ID of the key to configure.
+     * @param {MouseEvent} event - The click event to position the modal.
      */
-    function showModal(keyId) {
+    function showModal(keyId, event) {
+        // Temporarily show the modal to measure its dimensions
+        modalContainer.style.visibility = 'hidden';
+        modalContainer.style.display = 'flex';
+        
+        const modalContent = modalContainer.querySelector('.modal-content');
+        const { offsetWidth: modalWidth, offsetHeight: modalHeight } = modalContent;
+        
+        // Hide it again before positioning
+        modalContainer.style.display = 'none';
+        modalContainer.style.visibility = 'visible';
+
+        // Calculate position
+        const x = event.clientX, y = event.clientY;
+        const { innerWidth: viewportWidth, innerHeight: viewportHeight } = window;
+        let top = y + 15;
+        let left = x + 15;
+
+        // Check boundaries to keep modal on screen
+        if (left + modalWidth > viewportWidth - 15) {
+            left = x - modalWidth - 15;
+        }
+        if (top + modalHeight > viewportHeight - 15) {
+            top = y - modalHeight - 15;
+        }
+        if (top < 15) {
+            top = 15;
+        }
+        if (left < 15) {
+            left = 15;
+        }
+
+        modalContent.style.top = `${top}px`;
+        modalContent.style.left = `${left}px`;
+
+        // --- Populate modal content ---
         selectedKeyId = keyId;
-        newKeySelection = null; // Reset any pending selection
+        newKeySelection = null;
         const config = profiles[currentProfile][selectedKeyId] || {};
         
         const keyColorItem = document.getElementById('key-color-item');
         const keyCodeItem = document.getElementById('key-code-item');
 
-        // Show/hide elements based on key type and profile
         const isSmallKey = parseInt(selectedKeyId) >= 8;
+        keyColorItem.style.display = isSmallKey ? 'none' : 'flex';
+        keyCodeItem.style.display = currentProfile === 0 ? 'none' : 'flex';
 
-        if (isSmallKey) {
-            keyColorItem.style.display = 'none';
-        } else {
-            keyColorItem.style.display = 'flex';
-        }
-
-        if (currentProfile === 0) {
-            // It's profile 1 (IO mode). Hide keycode config for all keys.
-            keyCodeItem.style.display = 'none';
-        } else {
-            keyCodeItem.style.display = 'flex';
-        }
-
-        // Update color and key display
         colorInput.value = config.color || '#ffffff';
         keyCodeInput.value = config.keyCode ? `0x${config.keyCode.toString(16).padStart(2, '0')}` : '';
         currentKeyDisplay.textContent = config.keyDisplay || '无';
 
-        // Reset to record mode view
         isManualMode = false;
         recordModeDiv.style.display = 'flex';
         manualModeDiv.style.display = 'none';
 
+        // --- Finally, show the modal at the correct position ---
         modalContainer.style.display = 'flex';
     }
 
@@ -159,9 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Hides the configuration modal.
      */
     function hideModal() {
-        if (isRecording) {
-            cancelRecording();
-        }
+        if (isRecording) cancelRecording();
         modalContainer.style.display = 'none';
         selectedKeyId = null;
     }
@@ -187,23 +283,48 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const devices = await navigator.hid.requestDevice({ filters: [{ vendorId: 0x0721, productId: 0x0721 }] });
             if (devices.length === 0) {
-                alert('喵喵喵?');
+                showCustomAlert('喵喵喵? 没有找到设备哦~');
                 return;
             }
             hidDevice = devices[0];
             await hidDevice.open();
-            connectBtn.textContent = '写入单个配置文件';
-            connectBtn.style.backgroundColor = '#27ae60'; // Green
+            
+            // Update button to show connected state
+            setConnectButtonState(true);
+
             console.log('Connected to HID device:', hidDevice);
             console.log('设备集合(Collections):', hidDevice.collections, '喵~ 这是调试的关键信息哦！');
             
             // Start listening for input reports from the device
             hidDevice.addEventListener("inputreport", handleInputReport);
             console.log('现在开始监听设备按键回报了喵~');
+            
+            // Listen for the device to be disconnected
+            navigator.hid.addEventListener('disconnect', (e) => {
+                if (e.device === hidDevice) {
+                    console.log('设备已断开连接喵！');
+                    hidDevice = null;
+                    setConnectButtonState(false);
+                }
+            });
 
         } catch (error) {
             console.error('连接HID设备时出错了喵:', error);
-            alert('连接失败了喵');
+            showCustomAlert('连接失败了喵');
+        }
+    }
+
+    /**
+     * Updates the connect button's text and appearance.
+     * @param {boolean} isConnected 
+     */
+    function setConnectButtonState(isConnected) {
+        if (isConnected) {
+            connectBtn.textContent = '写入配置 ✅';
+            connectBtn.style.backgroundColor = '#27ae60'; // Green
+        } else {
+            connectBtn.textContent = '连接设备 🔌';
+            connectBtn.style.backgroundColor = ''; // Revert to default CSS color
         }
     }
 
@@ -227,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     config.keyCode = parsedCode;
                     config.keyDisplay = keyCodeToDisplayMap[parsedCode] || `0x${parsedCode.toString(16).padStart(2, '0').toUpperCase()}`;
                 } else {
-                    alert('请输入一个有效的键码 (0-255 或 0x00-0xFF) 喵~');
+                    showCustomAlert('请输入一个有效的键码 (0-255 或 0x00-0xFF) 哦~ ( ´•_•。)');
                     return; // Don't save/close modal
                 }
             } else {
@@ -299,11 +420,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show/hide IO mode controls
         if (profileIndex === 0) {
             ioModeControls.style.display = 'flex';
+            ioModeControlsHeader.style.display = 'block';
             // Set the switch state from profile data
             const config = profiles[0] || {};
             ioLightOverrideSwitch.checked = !!config.ioLightOverride;
         } else {
             ioModeControls.style.display = 'none';
+            ioModeControlsHeader.style.display = 'none';
         }
 
         updateKeyAppearances();
@@ -315,7 +438,8 @@ document.addEventListener('DOMContentLoaded', () => {
      * This is now a local-only operation.
      */
     async function handleResetLights() {
-        if (!confirm('确定要重置当前配置文件的所有灯光吗喵？这个操作是本地的，需要点击写入才会生效哦。')) {
+        const confirmed = await showCustomConfirm('确定要重置当前配置文件的所有灯光吗？\r\n✨ 这个操作是本地的，需要点击写入才会生效哦~');
+        if (!confirmed) {
             return;
         }
 
@@ -334,12 +458,13 @@ document.addEventListener('DOMContentLoaded', () => {
      * Resets all key assignments for the current profile.
      * This is a local-only operation.
      */
-    function handleResetAll() {
+    async function handleResetAll() {
         if (currentProfile === 0) {
-            alert('喵呜！IO模式下的按键是固定的，不能重置哦~');
+            showCustomAlert('喵呜！IO模式下的按键是固定的，不能重置哦~ (づ｡◕‿‿◕｡)づ');
             return;
         }
-        if (!confirm('确定要重置当前配置文件的所有按键吗喵？这个操作是本地的，需要点击写入才会生效哦。')) {
+        const confirmed = await showCustomConfirm('确定要重置当前配置文件的所有按键吗？\r\n⌨️ 这个操作是本地的，需要点击写入才会生效哦~');
+        if (!confirmed) {
             return;
         }
 
@@ -360,22 +485,23 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function handleUploadProfile() {
         if (!hidDevice) {
-            alert('设备未连接喵~ 请先连接设备。');
+            showCustomAlert('设备还没连接呢~ 请先连接设备哦！(＞д＜)');
             return;
         }
 
+        showCustomAlert('正在写入配置文件... 请稍候哦~ ( V.v)V'); // Show pending status
+
+        // A short delay to allow the pending message to render before potential blocking operation
+        await new Promise(resolve => setTimeout(resolve, 50));
+
         const reportId = 0;
         const data = new Uint8Array(63);
-
-        data[0] = 0x10; // Command: Upload Full Profile
-        data[1] = currentProfile;
-
-        const currentProfileConfig = profiles[currentProfile];
+        const currentConfig = profiles[currentProfile];
         let offset = 2;
 
         for (let i = 0; i < 10; i++) { // For all 10 keys
             const keyId = i.toString();
-            const config = currentProfileConfig[keyId] || {};
+            const config = currentConfig[keyId] || {};
             const isSmallKey = i >= 8;
             
             // For small keys, color is always black (off). Otherwise, use config or default.
@@ -407,58 +533,92 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await hidDevice.sendReport(reportId, data);
-            alert(`配置文件 ${currentProfile + 1} 已成写入喵！`);
+            showCustomAlert(`配置文件 ${currentProfile + 1} 已成功写入！🎉`);
         } catch (error) {
             console.error('配置文件写入失败了喵:', error);
-            alert('配置文件写入失败了喵');
+            showCustomAlert('配置文件写入失败了喵...〒▽〒\r\n重启浏览器试试~');
         }
     }
 
     /**
-     * Saves all profiles to a local JSON file.
+     * Saves the CURRENTLY SELECTED profile to a local JSON file.
      */
     function handleSaveToFile() {
-        const profilesJson = JSON.stringify(profiles, null, 2);
-        const blob = new Blob([profilesJson], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+        const currentProfileConfig = profiles[currentProfile];
+        if (!currentProfileConfig || Object.keys(currentProfileConfig).length === 0) {
+            showCustomAlert(`配置文件 ${currentProfile + 1} 是空的，没什么可保存的哦~ (´｡• ᵕ •｡\`)`);
+            return;
+        }
+
+        const profileJson = JSON.stringify(currentProfileConfig, null, 2);
+        const blob = new Blob([profileJson], { type: 'application/json' });
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `pgeki_config_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
+        a.href = URL.createObjectURL(blob);
+        const profileName = currentProfile === 0 ? 'IO' : currentProfile;
+        a.download = `PG_Config_${profileName}.json`;
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        console.log('配置已保存到文件喵~');
+        URL.revokeObjectURL(a.href);
+        a.remove();
+        console.log(`配置文件 ${currentProfile + 1} 已保存到文件喵~`);
     }
 
     /**
-     * Handles the file selection for loading a configuration.
+     * Handles the file selection for loading a configuration into the CURRENTLY SELECTED profile.
      */
     function handleLoadFromFile(event) {
         const file = event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
+
         reader.onload = (e) => {
             try {
-                const loadedProfiles = JSON.parse(e.target.result);
-                // Basic validation
-                if (Array.isArray(loadedProfiles) && loadedProfiles.length === 6) {
-                    profiles = loadedProfiles;
+                const loadedProfile = JSON.parse(e.target.result);
+
+                if (typeof loadedProfile === 'object' && loadedProfile !== null && !Array.isArray(loadedProfile)) {
+                    // If loading into the IO profile, preserve its key assignments.
+                    if (currentProfile === 0) {
+                        const ioProfile = profiles[currentProfile] || {};
+                        // Only update color and other non-key properties
+                        for (const keyId in loadedProfile) {
+                            if (loadedProfile[keyId].color) {
+                                if (!ioProfile[keyId]) ioProfile[keyId] = {};
+                                ioProfile[keyId].color = loadedProfile[keyId].color;
+                            }
+                            // Copy other potential future properties, but explicitly NOT keyCode/keyDisplay
+                        }
+                        // Specifically, handle the ioLightOverride property if it exists
+                        if (loadedProfile.hasOwnProperty('ioLightOverride')) {
+                            ioProfile.ioLightOverride = loadedProfile.ioLightOverride;
+                        }
+                        profiles[currentProfile] = ioProfile;
+                    } else {
+                        // For all other profiles, load the entire configuration
+                        profiles[currentProfile] = loadedProfile;
+                    }
+
                     saveProfiles();
-                    switchProfile(currentProfile); // Refresh UI
-                    alert('配置已成功载入喵！');
+                    updateKeyAppearances();
+                    // Also update IO controls if we're on that profile
+                    if (currentProfile === 0) {
+                        ioLightOverrideSwitch.checked = !!(profiles[0] && profiles[0].ioLightOverride);
+                    }
+                    showCustomAlert(`配置已成功载入到配置文件 ${currentProfile + 1}！开心~ (ﾉ>ω<)ﾉ`);
                 } else {
-                    alert('载入的配置文件格式不正确喵~');
+                    showCustomAlert('这个文件格式好像不对哦，请选择一个单个配置的文件~ ( ´•_•。)');
                 }
             } catch (error) {
                 console.error('解析配置文件失败了喵:', error);
-                alert('这不是一个有效的JSON配置文件喵~');
+                showCustomAlert('呜... 这不是一个有效的JSON配置文件呢... (｡•́︿•̀｡)');
             }
         };
+
+        reader.onerror = () => {
+             showCustomAlert('读取文件时出错了喵... (｡•́︿•̀｡)');
+        };
+
         reader.readAsText(file);
-        // Reset input value to allow loading the same file again
-        event.target.value = '';
+        showCustomAlert('正在读取配置文件... 请稍候~ (ﾐⓛᆽⓛﾐ)'); // Show pending status
     }
 
     /**
@@ -481,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.removeEventListener('keydown', keydownListener);
             keydownListener = null;
         }
-        recordKeyBtn.textContent = '点此录制按键';
+        recordKeyBtn.textContent = '开始录制 🔴';
         recordKeyBtn.classList.remove('is-recording');
         isRecording = false;
     }
@@ -511,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`录制到按键: ${newKeySelection.keyDisplay} (码: 0x${hidCode.toString(16)}) 喵~`);
             } else {
                 newKeySelection = null; // Invalidate selection if key is not mapped
-                currentKeyDisplay.textContent = '未映射';
+                currentKeyDisplay.textContent = '未映射 :(';
                  console.log(`录制到未映射的按键: ${event.code} 喵~`);
             }
             
@@ -535,20 +695,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Theme Management ---
+    function setTheme(isLight) {
+        if (isLight) {
+            document.body.classList.add('light-mode');
+            themeSwitch.checked = true;
+        } else {
+            document.body.classList.remove('light-mode');
+            themeSwitch.checked = false;
+        }
+    }
+
+    function applyInitialTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            // If there's a theme saved, use it
+            setTheme(savedTheme === 'light');
+        } else {
+            // Otherwise, use the system preference
+            const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+            setTheme(prefersLight);
+        }
+    }
+
+    function handleThemeSwitch() {
+        if (themeSwitch.checked) {
+            document.body.classList.add('light-mode');
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.body.classList.remove('light-mode');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
     // --- Event Listeners ---
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
         document.body.classList.toggle('sidebar-collapsed');
     });
 
-    connectBtn.addEventListener('click', () => {
-        if (hidDevice && hidDevice.opened) {
-            handleUploadProfile();
-        } else {
-            handleConnect();
-        }
-    });
-
+    connectBtn.addEventListener('click', () => hidDevice && hidDevice.opened ? handleUploadProfile() : handleConnect());
     saveBtn.addEventListener('click', handleSave);
     closeBtn.addEventListener('click', hideModal);
     resetLightsBtn.addEventListener('click', handleResetLights);
@@ -559,16 +745,33 @@ document.addEventListener('DOMContentLoaded', () => {
     ioLightOverrideSwitch.addEventListener('change', handleIoLightSwitchChange);
     recordKeyBtn.addEventListener('click', handleRecordKey);
     toggleInputModeBtn.addEventListener('click', handleToggleInputMode);
-    
-    // Hide modal if user clicks outside of the content area
-    modalContainer.addEventListener('click', (event) => {
-        if (event.target === modalContainer) {
-            hideModal();
+    themeSwitch.addEventListener('change', handleThemeSwitch);
+
+    // Keycode List Modal Listeners
+    showKeycodeListBtn.addEventListener('click', () => {
+        keycodeListModal.style.display = 'flex';
+    });
+    keycodeListCloseBtn.addEventListener('click', () => {
+        keycodeListModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === modalContainer) hideModal();
+        if (event.target === keycodeListModal) keycodeListModal.style.display = 'none';
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === "Escape") {
+            if (keycodeListModal.style.display !== 'none') {
+                keycodeListModal.style.display = 'none';
+            } else if (modalContainer.style.display !== 'none') {
+                hideModal();
+            }
         }
     });
 
     keys.forEach(key => {
-        key.addEventListener('click', () => {
+        key.addEventListener('click', (event) => {
             const keyId = key.dataset.keyId;
             // If the key has no ID, it's decorative and non-configurable.
             if (!keyId) {
@@ -582,7 +785,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('这个小按键在IO模式下是禁用的哦喵~');
                 return;
             }
-            showModal(keyId);
+            showModal(keyId, event);
         });
     });
 
@@ -590,7 +793,12 @@ document.addEventListener('DOMContentLoaded', () => {
         slot.addEventListener('click', () => switchProfile(index));
     });
 
+    customAlertOkBtn.addEventListener('click', () => {
+        customAlertModal.style.display = 'none';
+    });
+
     // --- Initial Setup ---
     document.body.classList.add('sidebar-collapsed');
+    applyInitialTheme();
     switchProfile(0); // Activate the first profile by default
 }); 
