@@ -7,17 +7,36 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="sidebar" class="collapsed">
+        <div class="sidebar-content">
+            <h3>工具喵</h3>
+            <button id="reset-lights-btn">重置灯光喵</button>
+            <button id="reset-all-btn">重置按键喵</button>
+            <div id="io-mode-controls">
+                <label for="io-light-override-switch">接管IO灯光</label>
+                <label class="switch">
+                    <input type="checkbox" id="io-light-override-switch">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+    <div id="sidebar-toggle">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
     <header class="header">
         <div class="header-left">
             <div class="profiles">
-                <div class="profile-slot active">1</div>
+                <div class="profile-slot active">IO</div>
+                <div class="profile-slot">1</div>
                 <div class="profile-slot">2</div>
                 <div class="profile-slot">3</div>
                 <div class="profile-slot">4</div>
                 <div class="profile-slot">5</div>
-                <div class="profile-slot">6</div>
             </div>
-            <button id="reset-lights-btn">重置灯光喵</button>
         </div>
         <div class="header-right">
             <button id="save-config-btn">保存配置喵</button>
@@ -29,17 +48,22 @@
 
     <main class="main-content">
         <div class="keyboard">
-            <div class="key key-rect" data-key-id="0"></div>
+            <div class="key key-rect" data-key-id="0"><span></span></div>
             <div class="key-group">
-                <div class="key key-square" data-key-id="1"></div>
-                <div class="key key-square" data-key-id="2"></div>
-                <div class="key key-square" data-key-id="3"></div>
+                <div class="key key-square" data-key-id="1"><span></span></div>
+                <div class="key key-square" data-key-id="2"><span></span></div>
+                <div class="key key-square" data-key-id="3"><span></span></div>
                 <div class="key-separator"></div>
-                <div class="key key-square" data-key-id="4"></div>
-                <div class="key key-square" data-key-id="5"></div>
-                <div class="key key-square" data-key-id="6"></div>
+                <div class="key key-square" data-key-id="4"><span></span></div>
+                <div class="key key-square" data-key-id="5"><span></span></div>
+                <div class="key key-square" data-key-id="6"><span></span></div>
             </div>
-            <div class="key key-rect" data-key-id="7"></div>
+            <div class="key key-rect" data-key-id="7"><span></span></div>
+        </div>
+        <div class="small-keys-container">
+            <div class="key key-circle" data-key-id="8"><span></span></div>
+            <div class="key key-circle key-disabled"><span></span></div>
+            <div class="key key-circle" data-key-id="9"><span></span></div>
         </div>
     </main>
 
@@ -47,13 +71,22 @@
         <div class="modal-content">
             <span class="close-btn">&times;</span>
             <h2>配置按键喵</h2>
-            <div class="config-item">
+            <div class="config-item" id="key-color-item">
                 <label for="key-color">颜色:</label>
                 <input type="color" id="key-color" value="#ffffff">
             </div>
             <div class="config-item" id="key-code-item">
-                <label for="key-code">键码:</label>
-                <input type="text" id="key-code" placeholder="例如: 0x04 (A)">
+                <label>键位:</label>
+                <div class="key-input-wrapper">
+                    <div id="record-mode">
+                        <button id="record-key-btn">点此录制按键</button>
+                        <code id="current-key-display">无</code>
+                    </div>
+                    <div id="manual-mode" style="display: none;">
+                        <input type="text" id="key-code-input" placeholder="例如: 0x04">
+                    </div>
+                </div>
+                <button id="toggle-input-mode-btn" title="切换输入模式">⇄</button>
             </div>
             <button id="save-btn">保存喵</button>
         </div>
