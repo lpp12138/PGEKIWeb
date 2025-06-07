@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             hidDevice = devices[0];
             await hidDevice.open();
-            connectBtn.textContent = '上载单个配置文件';
+            connectBtn.textContent = '写入单个配置文件';
             connectBtn.style.backgroundColor = '#27ae60'; // Green
             console.log('Connected to HID device:', hidDevice);
             console.log('设备集合(Collections):', hidDevice.collections, '喵~ 这是调试的关键信息哦！');
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await hidDevice.sendReport(reportId, data);
-            alert(`配置文件 ${currentProfile + 1} 已成功上载喵！`);
+            alert(`配置文件 ${currentProfile + 1} 已成写入喵！`);
         } catch (error) {
             console.error('配置文件写入失败了喵:', error);
             alert('配置文件写入失败了喵');
