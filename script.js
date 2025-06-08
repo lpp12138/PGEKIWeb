@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return parsed;
             }
         } catch (e) {
-            console.error("Couldn't parse profiles from localStorage喵", e);
+            //console.error("Couldn't parse profiles from localStorage喵", e);
             return null;
         }
         return null;
@@ -293,24 +293,24 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update button to show connected state
             setConnectButtonState(true);
 
-            console.log('Connected to HID device:', hidDevice);
-            console.log('设备集合(Collections):', hidDevice.collections, '喵~ 这是调试的关键信息哦！');
+            //console.log('Connected to HID device:', hidDevice);
+            //console.log('设备集合(Collections):', hidDevice.collections, '喵~ 这是调试的关键信息哦！');
             
             // Start listening for input reports from the device
             hidDevice.addEventListener("inputreport", handleInputReport);
-            console.log('现在开始监听设备按键回报了喵~');
+            //console.log('现在开始监听设备按键回报了喵~');
             
             // Listen for the device to be disconnected
             navigator.hid.addEventListener('disconnect', (e) => {
                 if (e.device === hidDevice) {
-                    console.log('设备已断开连接喵！');
+                    //console.log('设备已断开连接喵！');
                     hidDevice = null;
                     setConnectButtonState(false);
                 }
             });
 
         } catch (error) {
-            console.error('连接HID设备时出错了喵:', error);
+            //console.error('连接HID设备时出错了喵:', error);
             showCustomAlert('连接失败了喵');
         }
     }
@@ -431,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateKeyAppearances();
-        console.log(`切换到配置文件 ${profileIndex + 1} 喵~`);
+        //console.log(`切换到配置文件 ${profileIndex + 1} 喵~`);
     }
 
     /**
@@ -452,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveProfiles();
         updateKeyAppearances();
-        console.log('当前配置文件的灯光已在本地重置喵~');
+        //console.log('当前配置文件的灯光已在本地重置喵~');
     }
 
     /**
@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveProfiles();
         updateKeyAppearances();
-        console.log('当前配置文件的所有按键已在本地重置喵~');
+        //console.log('当前配置文件的所有按键已在本地重置喵~');
     }
 
     async function handleResetAll() {
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveProfiles();
         updateKeyAppearances();
-        console.log('当前配置文件已重置喵~');
+        //console.log('当前配置文件已重置喵~');
     }
     /**
      * Builds a 64-byte packet and sends it to the device.
@@ -548,18 +548,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- 调试日志 ---
-        console.log('--- 准备发送HID报告 ---');
-        console.log(`目标设备喵:`, hidDevice.productName);
-        console.log(`使用的 Report ID: ${reportId}`);
-        console.log(`数据包 (Uint8Array, 长度: ${data.length} bytes):`, data);
-        console.log(`数据包内容 (Hex): ${Array.from(data).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
-        console.log('------------------------');
+        //console.log('--- 准备发送HID报告 ---');
+        //console.log(`目标设备喵:`, hidDevice.productName);
+        //console.log(`使用的 Report ID: ${reportId}`);
+        //console.log(`数据包 (Uint8Array, 长度: ${data.length} bytes):`, data);
+        //console.log(`数据包内容 (Hex): ${Array.from(data).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+        //console.log('------------------------');
 
         try {
             await hidDevice.sendReport(reportId, data);
             showCustomAlert(`配置文件 ${currentProfile + 1} 已成功写入！🎉`);
         } catch (error) {
-            console.error('配置文件写入失败了喵:', error);
+            //console.error('配置文件写入失败了喵:', error);
             showCustomAlert('配置文件写入失败了喵...〒▽〒\r\n重启浏览器试试~');
         }
     }
@@ -583,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
         a.click();
         URL.revokeObjectURL(a.href);
         a.remove();
-        console.log(`配置文件 ${currentProfile + 1} 已保存到文件喵~`);
+        //console.log(`配置文件 ${currentProfile + 1} 已保存到文件喵~`);
     }
 
     /**
@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showCustomAlert('这个文件格式好像不对哦，请选择一个单个配置的文件~ ( ´•_•。)');
                 }
             } catch (error) {
-                console.error('解析配置文件失败了喵:', error);
+                //console.error('解析配置文件失败了喵:', error);
                 showCustomAlert('呜... 这不是一个有效的JSON配置文件呢... (｡•́︿•̀｡)');
             }
         };
@@ -657,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         profiles[0].ioLightOverride = ioLightOverrideSwitch.checked;
         saveProfiles();
-        console.log(`接管IO灯光状态已更新为: ${ioLightOverrideSwitch.checked} 喵~`);
+        //console.log(`接管IO灯光状态已更新为: ${ioLightOverrideSwitch.checked} 喵~`);
     }
 
     function cancelRecording() {
@@ -673,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleRecordKey() {
         if (isRecording) {
             cancelRecording();
-            console.log('取消按键录制喵~');
+            //console.log('取消按键录制喵~');
             return;
         }
 
@@ -692,11 +692,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     keyDisplay: event.key.length === 1 ? event.key.toUpperCase() : event.key,
                 };
                 currentKeyDisplay.textContent = newKeySelection.keyDisplay;
-                console.log(`录制到按键: ${newKeySelection.keyDisplay} (码: 0x${hidCode.toString(16)}) 喵~`);
+                //console.log(`录制到按键: ${newKeySelection.keyDisplay} (码: 0x${hidCode.toString(16)}) 喵~`);
             } else {
                 newKeySelection = null; // Invalidate selection if key is not mapped
                 currentKeyDisplay.textContent = '未映射 :(';
-                 console.log(`录制到未映射的按键: ${event.code} 喵~`);
+                 //console.log(`录制到未映射的按键: ${event.code} 喵~`);
             }
             
             cancelRecording();
@@ -807,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // In profile 0 (IO mode), small keys are completely disabled.
             if (currentProfile === 0 && isSmallKey) {
-                console.log('这个小按键在IO模式下是禁用的哦喵~');
+                //console.log('这个小按键在IO模式下是禁用的哦喵~');
                 return;
             }
             showModal(keyId, event);

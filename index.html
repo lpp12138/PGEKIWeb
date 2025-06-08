@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGEKI Web Configurator</title>
-    <link rel="stylesheet" href="./style.css">
+    <link inline rel="stylesheet" href="./style.css">
 </head>
 <body>
     <div id="sidebar" class="collapsed">
@@ -25,6 +25,7 @@
             <h3>其他设置</h3>
             <button id="save-config-btn">💾保存配置</button>
             <button id="load-config-btn">📁载入配置</button>
+            <input type="file" id="load-config-input" accept=".json" style="display: none;" title="载入配置">
             <div id="io-mode-controls">
                 <label for="theme-checkbox">🗘切换主题</label>
                 <label class="switch">
@@ -52,7 +53,6 @@
             </div>
         </div>
         <div class="header-right">
-            <input type="file" id="load-config-input" accept=".json" style="display: none;">
             <button id="connect-btn">点我连接设备喵</button>
         </div>
     </header>
@@ -278,6 +278,6 @@
         </div>
     </div>
 
-    <script src="./script.js"></script>
+    <script inline src="./script.js"></script>
 </body>
 </html> 
