@@ -798,12 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         isDragging = false;
         
-        // 摇杆回弹到中心
-        joystickLever = 0;
-        joystickStick.style.transform = 'translate(-50%, -50%)';
-        
-        updateJoystickDisplay();
-        
+        // 移除事件监听器，摇杆保持在当前位置，不自动回中
         document.removeEventListener('mousemove', handleJoystickDrag);
         document.removeEventListener('mouseup', stopJoystickDrag);
         document.removeEventListener('touchmove', handleJoystickDrag);
