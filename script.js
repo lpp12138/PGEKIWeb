@@ -730,6 +730,119 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- 摇杆功能 ---
+    function initializeJoystick() {
+        joystickBaseRect = joystickStick.parentElement.getBoundingClientRect();
+        updateJoystickDisplay();
+        
+        // 监听摇杆拖拽
+        joystickStick.addEventListener('mousedown', startJoystickDrag);
+        joystickStick.addEventListener('touchstart', startJoystickDrag, { passive: false });
+        
+        // 监听窗口大小变化，更新joystickBaseRect
+        window.addEventListener('resize', () => {
+            joystickBaseRect = joystickStick.parentElement.getBoundingClientRect();
+        });
+    }
+    
+    function startJoystickDrag(event) {
+        isDragging = true;
+        joystickBaseRect = joystickStick.parentElement.getBoundingClientRect();
+        
+        event.preventDefault();
+        
+        document.addEventListener('mousemove', handleJoystickDrag);
+        document.addEventListener('mouseup', stopJoystickDrag);
+        document.addEventListener('touchmove', handleJoystickDrag, { passive: false });
+        document.addEventListener('touchend', stopJoystickDrag);
+    }
+    
+    function handleJoystickDrag(event) {
+        if (!isDragging) return;
+        
+        event.preventDefault();
+        
+        let clientX, clientY;
+        if (event.type.startsWith('touch')) {
+            if (event.touches.length === 0) return;
+            clientX = event.touches[0].clientX;
+            clientY = event.touches[0].clientY;
+        } else {
+            clientX = event.clientX;
+            clientY = event.clientY;
+        }
+        
+        // 计算相对于摇杆基座中心的位置
+        const centerX = joystickBaseRect.left + joystickBaseRect.width / 2;
+        const centerY = joystickBaseRect.top + joystickBaseRect.height / 2;
+        const deltaX = clientX - centerX;
+        const deltaY = clientY - centerY;
+        
+        // 限制在圆形范围内
+        const maxRadius = (joystickBaseRect.width / 2) - 25; // 留出摇杆把手的空间
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        let finalX = deltaX;
+        let finalY = deltaY;
+        
+        if (distance > maxRadius) {
+            const ratio = maxRadius / distance;
+            finalX = deltaX * ratio;
+            finalY = deltaY * ratio;
+        }
+        
+        // 更新摇杆位置 (-maxRadius到+maxRadius) -> (0到255)
+        joystickX = Math.round(((finalX / maxRadius) + 1) * 127.5);
+        joystickY = Math.round(((finalY / maxRadius) + 1) * 127.5);
+        
+        // 确保值在有效范围内
+        joystickX = Math.max(0, Math.min(255, joystickX));
+        joystickY = Math.max(0, Math.min(255, joystickY));
+        
+        // 更新视觉位置
+        joystickStick.style.transform = `translate(calc(-50% + ${finalX}px), calc(-50% + ${finalY}px))`;
+        
+        updateJoystickDisplay();
+    }
+    
+    function stopJoystickDrag() {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        
+        // 摇杆回弹到中心
+        joystickX = 128;
+        joystickY = 128;
+        joystickStick.style.transform = 'translate(-50%, -50%)';
+        
+        updateJoystickDisplay();
+        
+        document.removeEventListener('mousemove', handleJoystickDrag);
+        document.removeEventListener('mouseup', stopJoystickDrag);
+        document.removeEventListener('touchmove', handleJoystickDrag);
+        document.removeEventListener('touchend', stopJoystickDrag);
+    }
+    
+    function updateJoystickDisplay() {
+        joystickXValue.textContent = `X: ${joystickX}`;
+        joystickYValue.textContent = `Y: ${joystickY}`;
+    }
+    
+    // 处理从设备接收的摇杆数据
+    function updateJoystickFromHID(xValue, yValue) {
+        // 确保值在有效范围内
+        joystickX = Math.max(0, Math.min(255, xValue));
+        joystickY = Math.max(0, Math.min(255, yValue));
+        
+        // 更新视觉位置 (0-255) -> (-maxRadius到+maxRadius)
+        const maxRadius = (joystickBaseRect ? joystickBaseRect.width / 2 : 80) - 25;
+        const visualX = ((joystickX / 127.5) - 1) * maxRadius;
+        const visualY = ((joystickY / 127.5) - 1) * maxRadius;
+        
+        joystickStick.style.transform = `translate(calc(-50% + ${visualX}px), calc(-50% + ${visualY}px))`;
+        updateJoystickDisplay();
+    }
+
     // --- Theme Management ---
     function setTheme(isLight) {
         if (isLight) {
