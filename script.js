@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let profiles = loadProfiles() || Array(6).fill(null).map(() => ({}));
     
     // 摇杆状态
-    let joystickLever = 0; // PGEKI2摇杆值，以0为中点 (int16_t)
+    let joystickLever = 0; // MAGEKI摇杆值，以0为中点 (int16_t)
     let isDragging = false;
     let joystickBaseRect = null;
 
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const { data, device, reportId } = event;
         if (data.byteLength < 10) return;
 
-        // 处理摇杆数据 - 根据PGEKI2的数据格式
+        // 处理摇杆数据 - 根据MAGEKI的数据格式
         // 摇杆数据在字节偏移10-11 (int16_t lever)
         if (data.byteLength >= 12) {
             // 读取16位有符号整数 (小端序)
