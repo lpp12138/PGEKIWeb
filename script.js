@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 摇杆相关元素
     const joystickStick = document.getElementById('joystick-stick');
     const joystickLeverValue = document.getElementById('joystick-lever-value');
-    const joystickAngleValue = document.getElementById('joystick-angle-value');
     
     // Keycode List Modal Elements
     const showKeycodeListBtn = document.getElementById('show-keycode-list-btn');
@@ -740,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 摇杆功能 ---
     function initializeJoystick() {
         joystickBaseRect = joystickStick.parentElement.getBoundingClientRect();
-        updateJoystickDisplay(0);
+        updateJoystickDisplay();
         
         // 监听摇杆拖拽
         joystickStick.addEventListener('mousedown', startJoystickDrag);
@@ -769,47 +768,29 @@ document.addEventListener('DOMContentLoaded', () => {
         
         event.preventDefault();
         
-        let clientX, clientY;
+        let clientX;
         if (event.type.startsWith('touch')) {
             if (event.touches.length === 0) return;
             clientX = event.touches[0].clientX;
-            clientY = event.touches[0].clientY;
         } else {
             clientX = event.clientX;
-            clientY = event.clientY;
         }
         
-        // 计算相对于摇杆基座中心的位置
+        // 计算相对于摇杆基座中心的X位置
         const centerX = joystickBaseRect.left + joystickBaseRect.width / 2;
-        const centerY = joystickBaseRect.top + joystickBaseRect.height / 2;
         const deltaX = clientX - centerX;
-        const deltaY = clientY - centerY;
         
-        // 限制在圆形范围内
-        const maxRadius = (joystickBaseRect.width / 2) - 25; // 留出摇杆把手的空间
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        // 限制在水平范围内
+        const maxDistance = (joystickBaseRect.width / 2) - 30; // 留出摇杆把手的空间
+        let finalX = Math.max(-maxDistance, Math.min(maxDistance, deltaX));
         
-        let finalX = deltaX;
-        let finalY = deltaY;
+        // 计算lever值 - 从-32767到+32767
+        joystickLever = Math.round((finalX / maxDistance) * 32767);
         
-        if (distance > maxRadius) {
-            const ratio = maxRadius / distance;
-            finalX = deltaX * ratio;
-            finalY = deltaY * ratio;
-        }
+        // 更新视觉位置（只有X轴移动）
+        joystickStick.style.transform = `translate(calc(-50% + ${finalX}px), -50%)`;
         
-        // 计算角度 (0-360度，从正右方开始，顺时针)
-        let angle = Math.atan2(-finalY, finalX) * 180 / Math.PI;
-        if (angle < 0) angle += 360;
-        
-        // 计算lever值 - 假设最大值为32767 (int16_t的正最大值)
-        const normalizedDistance = Math.sqrt(finalX * finalX + finalY * finalY) / maxRadius;
-        joystickLever = Math.round(normalizedDistance * 32767);
-        
-        // 更新视觉位置
-        joystickStick.style.transform = `translate(calc(-50% + ${finalX}px), calc(-50% + ${finalY}px))`;
-        
-        updateJoystickDisplay(angle);
+        updateJoystickDisplay();
     }
     
     function stopJoystickDrag() {
@@ -821,7 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
         joystickLever = 0;
         joystickStick.style.transform = 'translate(-50%, -50%)';
         
-        updateJoystickDisplay(0);
+        updateJoystickDisplay();
         
         document.removeEventListener('mousemove', handleJoystickDrag);
         document.removeEventListener('mouseup', stopJoystickDrag);
@@ -829,9 +810,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('touchend', stopJoystickDrag);
     }
     
-    function updateJoystickDisplay(angle = 0) {
+    function updateJoystickDisplay() {
         joystickLeverValue.textContent = `Lever: ${joystickLever}`;
-        joystickAngleValue.textContent = `Angle: ${Math.round(angle)}°`;
     }
     
     // 处理从设备接收的摇杆数据
@@ -839,21 +819,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // 更新摇杆值
         joystickLever = leverValue;
         
-        // 由于从HID只接收到lever值，我们只能显示力度，无法确定具体方向
-        // 如果lever为0，摇杆在中心位置
-        if (leverValue === 0) {
-            joystickStick.style.transform = 'translate(-50%, -50%)';
-            updateJoystickDisplay(0);
-        } else {
-            // 如果有lever值但没有方向信息，我们可以让摇杆向右移动来表示有输入
-            const maxRadius = (joystickBaseRect ? joystickBaseRect.width / 2 : 80) - 25;
-            const normalizedLever = Math.abs(leverValue) / 32767; // 假设最大值为32767
-            const visualDistance = normalizedLever * maxRadius;
-            
-            // 简单地向右方向显示
-            joystickStick.style.transform = `translate(calc(-50% + ${visualDistance}px), -50%)`;
-            updateJoystickDisplay(0); // 角度未知，显示0
-        }
+        // 计算视觉位置 - lever值映射到水平位置
+        const maxDistance = (joystickBaseRect ? joystickBaseRect.width / 2 : 150) - 30;
+        const visualX = (leverValue / 32767) * maxDistance;
+        
+        // 更新摇杆位置（只有X轴移动）
+        joystickStick.style.transform = `translate(calc(-50% + ${visualX}px), -50%)`;
+        updateJoystickDisplay();
     }
 
     // --- Theme Management ---
