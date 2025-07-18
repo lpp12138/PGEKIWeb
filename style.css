@@ -466,6 +466,119 @@ body.light-mode #show-keycode-list-btn:hover {
     gap: 20px;
 }
 
+/* 摇杆样式 */
+.joystick-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.joystick-base {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    background: linear-gradient(145deg, var(--key-bg), var(--key-bg-hover));
+    border: 2px solid var(--key-bg-hover);
+    border-radius: 20px;
+    box-shadow: 
+        inset 0 0 20px rgba(0, 0, 0, 0.1),
+        0 4px 8px var(--key-shadow);
+    overflow: hidden;
+}
+
+.joystick-crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 120px;
+    pointer-events: none;
+}
+
+.crosshair-horizontal,
+.crosshair-vertical {
+    position: absolute;
+    background-color: rgba(127, 140, 141, 0.3);
+}
+
+.crosshair-horizontal {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    transform: translateY(-50%);
+}
+
+.crosshair-vertical {
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+    transform: translateX(-50%);
+}
+
+.joystick-stick {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    transition: all 0.1s ease-out;
+    z-index: 10;
+}
+
+.joystick-stick:active {
+    cursor: grabbing;
+}
+
+.joystick-knob {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, #e74c3c, #c0392b);
+    border: 2px solid #a93226;
+    border-radius: 50%;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    position: relative;
+}
+
+.joystick-knob::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.joystick-info {
+    display: flex;
+    gap: 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+.joystick-info span {
+    background: var(--key-bg);
+    border: 1px solid var(--key-bg-hover);
+    border-radius: 8px;
+    padding: 5px 12px;
+    min-width: 60px;
+    text-align: center;
+    box-shadow: 0 2px 4px var(--key-shadow);
+}
+
 .keyboard {
     display: flex;
     align-items: center;

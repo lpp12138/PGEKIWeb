@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const manualModeDiv = document.getElementById('manual-mode');
     const keyCodeInput = document.getElementById('key-code-input');
     
+    // 摇杆相关元素
+    const joystickStick = document.getElementById('joystick-stick');
+    const joystickXValue = document.getElementById('joystick-x-value');
+    const joystickYValue = document.getElementById('joystick-y-value');
+    
     // Keycode List Modal Elements
     const showKeycodeListBtn = document.getElementById('show-keycode-list-btn');
     const keycodeListModal = document.getElementById('keycode-list-modal');
@@ -49,6 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let isManualMode = false;
     let keydownListener = null;
     let profiles = loadProfiles() || Array(6).fill(null).map(() => ({}));
+    
+    // 摇杆状态
+    let joystickX = 128; // 中心位置 (0-255, 128为中心)
+    let joystickY = 128;
+    let isDragging = false;
+    let joystickBaseRect = null;
 
     // --- Keycode Map ---
     const hidKeycodeMap = {
