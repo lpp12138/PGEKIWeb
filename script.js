@@ -390,7 +390,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const { data, device, reportId } = event;
         if (data.byteLength < 10) return;
 
-        // New mapping based on user's description
+        // 处理摇杆数据 - 根据PGEKI2的数据格式调整这部分
+        // 假设摇杆数据在数据包的特定位置，您需要根据实际格式调整
+        if (data.byteLength >= 12) { // 假设摇杆数据在字节10和11
+            const joystickX = data.getUint8(10); // X轴数据
+            const joystickY = data.getUint8(11); // Y轴数据
+            updateJoystickFromHID(joystickX, joystickY);
+        }
+
+        // 处理按键数据
         const byteToKeyIdMap = {
             0: 1, // 左侧第一个方键
             1: 2, // 左侧第二个方键
@@ -950,4 +958,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('sidebar-collapsed');
     applyInitialTheme();
     switchProfile(0); // Activate the first profile by default
+    initializeJoystick(); // 初始化摇杆组件
 }); 
