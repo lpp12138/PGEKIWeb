@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ioModeControls = document.getElementById('io-mode-controls');
     const ioModeControlsHeader = document.getElementById('io-mode-controls-header');
     const ioLightOverrideSwitch = document.getElementById('io-light-override-switch');
+    const usbModeSelect = document.getElementById('usb-mode-select');
     const connectBtn = document.getElementById('connect-btn');
     const modalContainer = document.getElementById('config-modal');
     const closeBtn = document.querySelector('.close-btn');
@@ -40,8 +41,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const customConfirmYesBtn = document.getElementById('custom-confirm-yes-btn');
     const customConfirmNoBtn = document.getElementById('custom-confirm-no-btn');
 
+    const USB_MODES = Object.freeze({
+        RAW_IO: 1,
+        IO4: 2,
+    });
+    const WEB_CONFIG_COMMAND = 0x10;
+    const USB_DEVICE_DEFINITIONS = Object.freeze([
+        {
+            vendorId: 0x0721,
+            productId: 0x0721,
+            usagePage: 0xff00,
+            usage: 0x01,
+            mode: USB_MODES.RAW_IO,
+            outputReportId: 0x00,
+            inputReportId: 0x00,
+        },
+        {
+            vendorId: 0x0ca3,
+            productId: 0x0021,
+            usagePage: 0x01,
+            usage: 0x04,
+            mode: USB_MODES.IO4,
+            outputReportId: 0x10,
+            inputReportId: 0x01,
+        },
+    ]);
+    const buttonIndexToKeyId = Object.freeze([1, 2, 3, 0, 8, 4, 5, 6, 7, 9]);
+
     // --- State ---
     let hidDevice = null;
+    let connectedUsbMode = null;
     let selectedKeyId = null;
     let currentProfile = 0;
     let newKeySelection = null;
@@ -282,13 +311,31 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function handleConnect() {
         try {
-            const devices = await navigator.hid.requestDevice({ filters: [{ vendorId: 0x0721, productId: 0x0721 }] });
+            const filters = USB_DEVICE_DEFINITIONS.map(({
+                vendorId,
+                productId,
+                usagePage,
+                usage,
+            }) => ({ vendorId, productId, usagePage, usage }));
+            const devices = await navigator.hid.requestDevice({ filters });
             if (devices.length === 0) {
                 showCustomAlert('喵喵喵? 没有找到设备哦~');
                 return;
             }
-            hidDevice = devices[0];
-            await hidDevice.open();
+
+            const selectedDevice = devices.find(device => findDeviceDefinition(device));
+            const deviceDefinition = selectedDevice ? findDeviceDefinition(selectedDevice) : null;
+            if (!selectedDevice || !deviceDefinition) {
+                showCustomAlert('选中的设备没有兼容的PGEKI HID接口。');
+                return;
+            }
+
+            hidDevice = selectedDevice;
+            if (!hidDevice.opened) {
+                await hidDevice.open();
+            }
+            connectedUsbMode = deviceDefinition.mode;
+            setSelectedUsbMode(connectedUsbMode);
             
             // Update button to show connected state
             setConnectButtonState(true);
@@ -305,6 +352,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.device === hidDevice) {
                     //console.log('设备已断开连接喵！');
                     hidDevice = null;
+                    connectedUsbMode = null;
+                    updateButtonStates(Array(10).fill(false));
                     setConnectButtonState(false);
                 }
             });
@@ -313,6 +362,18 @@ document.addEventListener('DOMContentLoaded', () => {
             //console.error('连接HID设备时出错了喵:', error);
             showCustomAlert('连接失败了喵');
         }
+    }
+
+    function findDeviceDefinition(device) {
+        return USB_DEVICE_DEFINITIONS.find(({ vendorId, productId, usagePage, usage }) => {
+            if (device.vendorId !== vendorId || device.productId !== productId) {
+                return false;
+            }
+            return !device.collections || device.collections.length === 0 ||
+                device.collections.some(collection =>
+                    collection.usagePage === usagePage && collection.usage === usage
+                );
+        });
     }
 
     /**
@@ -327,6 +388,12 @@ document.addEventListener('DOMContentLoaded', () => {
             connectBtn.textContent = '点我连接设备喵';
             connectBtn.style.backgroundColor = ''; // Revert to default CSS color
         }
+    }
+
+    function setSelectedUsbMode(mode) {
+        const normalizedMode = mode === USB_MODES.IO4 ? USB_MODES.IO4 : USB_MODES.RAW_IO;
+        usbModeSelect.value = normalizedMode.toString();
+        localStorage.setItem('pgeki-usb-mode', normalizedMode.toString());
     }
 
     /**
@@ -377,35 +444,52 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function handleInputReport(event) {
         const { data, device, reportId } = event;
-        if (data.byteLength < 10) return;
+        if (device !== hidDevice) return;
 
-        // New mapping based on user's description
-        const byteToKeyIdMap = {
-            0: 1, // 左侧第一个方键
-            1: 2, // 左侧第二个方键
-            2: 3, // 左侧第三个方键
-            3: 0, // 左侧长方按键
-            4: 8, // 左侧小圆键
-            5: 4, // 右侧第一个方键
-            6: 5, // 右侧第二个方键
-            7: 6, // 右侧第三个方键
-            8: 7, // 右侧长方按键
-            9: 9  // 右侧小圆键
-        };
+        const deviceDefinition = findDeviceDefinition(device);
+        if (!deviceDefinition || reportId !== deviceDefinition.inputReportId) return;
 
-        for (let byteIndex = 0; byteIndex < 10; byteIndex++) {
-            const keyId = byteToKeyIdMap[byteIndex];
+        const buttonStates = deviceDefinition.mode === USB_MODES.IO4
+            ? decodeIo4ButtonStates(data)
+            : decodeRawButtonStates(data);
+        if (!buttonStates) return;
+        updateButtonStates(buttonStates);
+    }
+
+    function decodeRawButtonStates(data) {
+        if (data.byteLength < 10) return null;
+        return Array.from({ length: 10 }, (_, index) => data.getUint8(index) !== 0);
+    }
+
+    function decodeIo4ButtonStates(data) {
+        // WebHID exposes reportId separately, so the two button banks begin at
+        // byte offsets 28 and 30 in the remaining 63-byte IO4 payload.
+        if (data.byteLength < 32) return null;
+        const buttons0 = data.getUint16(28, true);
+        const buttons1 = data.getUint16(30, true);
+        const isSet = (value, bit) => (value & (1 << bit)) !== 0;
+
+        return [
+            isSet(buttons0, 0),
+            isSet(buttons0, 5),
+            isSet(buttons0, 4),
+            !isSet(buttons1, 15),
+            isSet(buttons1, 14),
+            isSet(buttons0, 1),
+            isSet(buttons1, 0),
+            isSet(buttons0, 15),
+            !isSet(buttons0, 14),
+            isSet(buttons0, 13),
+        ];
+    }
+
+    function updateButtonStates(buttonStates) {
+        buttonStates.forEach((isPressed, buttonIndex) => {
+            const keyId = buttonIndexToKeyId[buttonIndex];
             const keyElement = document.querySelector(`.key[data-key-id="${keyId}"]`);
-            if (!keyElement) continue;
-
-            const isPressed = data.getUint8(byteIndex) !== 0;
-
-            if (isPressed) {
-                keyElement.classList.add('pressed');
-            } else {
-                keyElement.classList.remove('pressed');
-            }
-        }
+            if (!keyElement) return;
+            keyElement.classList.toggle('pressed', Boolean(isPressed));
+        });
     }
 
     /**
@@ -505,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
         //console.log('当前配置文件已重置喵~');
     }
     /**
-     * Builds a 64-byte packet and sends it to the device.
+     * Builds a 63-byte WebHID configuration packet and sends it to the device.
      */
     async function handleUploadProfile() {
         if (!hidDevice) {
@@ -518,9 +602,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // A short delay to allow the pending message to render before potential blocking operation
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        const reportId = 0;
+        const deviceDefinition = USB_DEVICE_DEFINITIONS.find(({ vendorId, productId }) =>
+            hidDevice.vendorId === vendorId && hidDevice.productId === productId
+        );
+        if (!deviceDefinition) {
+            showCustomAlert('当前连接的设备型号不受支持。');
+            return;
+        }
+
+        const targetUsbMode = Number(usbModeSelect.value) === USB_MODES.IO4
+            ? USB_MODES.IO4
+            : USB_MODES.RAW_IO;
+        const reportId = deviceDefinition.outputReportId;
         const data = new Uint8Array(63);
         const currentConfig = profiles[currentProfile];
+        data[0] = WEB_CONFIG_COMMAND;
+        data[1] = currentProfile;
         let offset = 2;
 
         for (let i = 0; i < 10; i++) { // For all 10 keys
@@ -546,6 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // The byte for the flag is now after the 10 key configs. 2 + (10*4) = 42.
             data[42] = config.ioLightOverride ? 1 : 0;
         }
+        data[43] = targetUsbMode;
 
         // --- 调试日志 ---
         //console.log('--- 准备发送HID报告 ---');
@@ -557,7 +655,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await hidDevice.sendReport(reportId, data);
-            showCustomAlert(`配置文件 ${currentProfile + 1} 已成功写入！🎉`);
+            setSelectedUsbMode(targetUsbMode);
+            if (targetUsbMode !== connectedUsbMode) {
+                showCustomAlert('配置已写入，设备将切换USB模式并重启。请等待设备重新出现后再次连接。');
+            } else {
+                showCustomAlert(`配置文件 ${currentProfile + 1} 已成功写入！🎉`);
+            }
         } catch (error) {
             //console.error('配置文件写入失败了喵:', error);
             showCustomAlert('配置文件写入失败了喵...〒▽〒\r\n重启浏览器试试~');
@@ -768,6 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadConfigBtn.addEventListener('click', () => loadConfigInput.click());
     loadConfigInput.addEventListener('change', handleLoadFromFile);
     ioLightOverrideSwitch.addEventListener('change', handleIoLightSwitchChange);
+    usbModeSelect.addEventListener('change', () => setSelectedUsbMode(Number(usbModeSelect.value)));
     recordKeyBtn.addEventListener('click', handleRecordKey);
     toggleInputModeBtn.addEventListener('click', handleToggleInputMode);
     themeSwitch.addEventListener('change', handleThemeSwitch);
@@ -825,5 +929,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initial Setup ---
     document.body.classList.add('sidebar-collapsed');
     applyInitialTheme();
+    setSelectedUsbMode(Number(localStorage.getItem('pgeki-usb-mode')));
     switchProfile(0); // Activate the first profile by default
-}); 
+});

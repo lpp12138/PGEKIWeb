@@ -15,18 +15,27 @@
             <button id="reset-key-btn">⌨️重置按键</button>
             <button id="reset-all-btn">💥重置全部</button>
             <h3 id="io-mode-controls-header">IO设置</h3>
-            <div id="io-mode-controls">
+            <div id="io-mode-controls" class="sidebar-setting">
                 <label for="io-light-override-switch">接管IO灯光</label>
                 <label class="switch">
                     <input type="checkbox" id="io-light-override-switch">
                     <span class="slider round"></span>
                 </label>
             </div>
+            <h3>设备通信</h3>
+            <div id="device-mode-controls" class="sidebar-setting">
+                <label for="usb-mode-select">USB模式</label>
+                <select id="usb-mode-select" title="选择写入后使用的USB通信模式">
+                    <option value="1">原始IO（兼容）</option>
+                    <option value="2">IO4（实验）</option>
+                </select>
+            </div>
+            <p class="device-mode-hint">切换模式会在写入配置后重启设备，请重新连接。</p>
             <h3>其他设置</h3>
             <button id="save-config-btn">💾保存配置</button>
             <button id="load-config-btn">📁载入配置</button>
             <input type="file" id="load-config-input" accept=".json" style="display: none;" title="载入配置">
-            <div id="io-mode-controls">
+            <div id="theme-controls" class="sidebar-setting">
                 <label for="theme-checkbox">🗘切换主题</label>
                 <label class="switch">
                     <input type="checkbox" id="theme-checkbox" />
@@ -280,4 +289,4 @@
 
     <script inline src="./script.js"></script>
 </body>
-</html> 
+</html>
