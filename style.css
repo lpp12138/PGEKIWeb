@@ -241,15 +241,20 @@ body.light-mode .sidebar-content h3 {
     border-bottom-color: var(--key-shadow);
 }
 
-.sidebar-content button {
+.sidebar-content button,
+.sidebar-content .sidebar-action {
     display: block;
     width: 100%;
+    box-sizing: border-box;
     margin-bottom: 15px;
     padding: 10px 15px;
     border: none;
     border-radius: 5px;
     color: white;
     font-size: 16px;
+    line-height: normal;
+    text-align: center;
+    text-decoration: none;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
@@ -481,6 +486,103 @@ body.light-mode #show-keycode-list-btn:hover {
 
 #save-config-btn:hover, #load-config-btn:hover {
     background-color: var(--accent-color-btn-hover);
+}
+
+#firmware-update-btn {
+    background-color: #16a085;
+    border-bottom: 3px solid #117864;
+}
+
+#firmware-update-btn:hover,
+#firmware-update-btn:focus-visible {
+    background-color: #1abc9c;
+}
+
+#firmware-update-modal .modal-content {
+    position: relative;
+    width: min(430px, calc(100vw - 70px));
+}
+
+.firmware-update-close-btn {
+    padding: 0 5px;
+    color: var(--text-color);
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.firmware-update-description,
+.firmware-update-hint,
+#firmware-update-status {
+    line-height: 1.55;
+}
+
+.firmware-update-hint {
+    margin: 12px 0 0;
+    color: #95a5a6;
+    font-size: 12px;
+}
+
+#firmware-file-input,
+#firmware-update-progress {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 10px 0;
+}
+
+#firmware-file-input {
+    padding: 10px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background: var(--input-bg);
+    color: var(--input-text);
+}
+
+#firmware-update-status {
+    min-height: 1.55em;
+    margin: 6px 0 12px;
+}
+
+#firmware-upload-btn,
+.firmware-update-link {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    border: 0;
+    border-radius: 5px;
+    background: var(--accent-color-btn);
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#firmware-upload-btn:hover,
+.firmware-update-link:hover {
+    background: var(--accent-color-btn-hover);
+}
+
+#firmware-upload-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.firmware-update-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0;
+    color: #95a5a6;
+}
+
+.firmware-update-divider::before,
+.firmware-update-divider::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--border-color);
 }
 
 .main-content {

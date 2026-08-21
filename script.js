@@ -20,6 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveConfigBtn = document.getElementById('save-config-btn');
     const loadConfigBtn = document.getElementById('load-config-btn');
     const loadConfigInput = document.getElementById('load-config-input');
+    const firmwareUpdateBtn = document.getElementById('firmware-update-btn');
+    const firmwareUpdateModal = document.getElementById('firmware-update-modal');
+    const firmwareUpdateCloseBtn = firmwareUpdateModal.querySelector('.firmware-update-close-btn');
+    const firmwareFileInput = document.getElementById('firmware-file-input');
+    const firmwareUploadBtn = document.getElementById('firmware-upload-btn');
+    const firmwareUpdateProgress = document.getElementById('firmware-update-progress');
+    const firmwareUpdateStatus = document.getElementById('firmware-update-status');
     const recordKeyBtn = document.getElementById('record-key-btn');
     const currentKeyDisplay = document.getElementById('current-key-display');
     const toggleInputModeBtn = document.getElementById('toggle-input-mode-btn');
@@ -46,6 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
         IO4: 2,
     });
     const WEB_CONFIG_COMMAND = 0x10;
+    const WEB_OTA_PROTOCOL_VERSION = 1;
+    const WEB_OTA_COMMAND_MAGIC = Object.freeze([0xA5, 0x5A]);
+    const WEB_OTA_COMMANDS = Object.freeze({
+        BEGIN: 0x20,
+        DATA: 0x21,
+        END: 0x22,
+        ABORT: 0x23,
+    });
+    const WEB_OTA_STATUS_MAGIC = Object.freeze([0xA5, 0x5A]);
+    const WEB_OTA_STATUS_OK = 0x00;
+    const WEB_OTA_STATUS_COMPLETE = 0x01;
+    const WEB_OTA_DATA_SIZE = 57;
+    const WEB_OTA_MAXIMUM_IMAGE_SIZE = 2 * 1024 * 1024;
     const USB_DEVICE_DEFINITIONS = Object.freeze([
         {
             vendorId: 0x0721,
@@ -77,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isRecording = false;
     let isManualMode = false;
     let keydownListener = null;
+    let otaUploadActive = false;
+    let otaAckWaiter = null;
     let profiles = loadProfiles() || Array(6).fill(null).map(() => ({}));
 
     // --- Keycode Map ---
@@ -350,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Listen for the device to be disconnected
             navigator.hid.addEventListener('disconnect', (e) => {
                 if (e.device === hidDevice) {
+                    cancelOtaWaiter(new Error('设备已断开连接'));
                     //console.log('设备已断开连接喵！');
                     hidDevice = null;
                     connectedUsbMode = null;
@@ -449,11 +472,223 @@ document.addEventListener('DOMContentLoaded', () => {
         const deviceDefinition = findDeviceDefinition(device);
         if (!deviceDefinition || reportId !== deviceDefinition.inputReportId) return;
 
+        const otaStatus = decodeWebOtaStatus(data);
+        if (otaStatus) {
+            handleWebOtaStatus(otaStatus);
+            return;
+        }
+
         const buttonStates = deviceDefinition.mode === USB_MODES.IO4
             ? decodeIo4ButtonStates(data)
             : decodeRawButtonStates(data);
         if (!buttonStates) return;
         updateButtonStates(buttonStates);
+    }
+
+    function decodeWebOtaStatus(data) {
+        if (data.byteLength < 15 ||
+            data.getUint8(0) !== WEB_OTA_STATUS_MAGIC[0] ||
+            data.getUint8(1) !== WEB_OTA_STATUS_MAGIC[1]) {
+            return null;
+        }
+        return {
+            command: data.getUint8(2),
+            status: data.getUint8(3),
+            sequence: data.getUint16(4, true),
+            receivedBytes: data.getUint32(6, true),
+            expectedBytes: data.getUint32(10, true),
+            protocolVersion: data.getUint8(14),
+        };
+    }
+
+    function handleWebOtaStatus(status) {
+        if (!otaAckWaiter || status.command !== otaAckWaiter.command) return;
+        if (status.protocolVersion !== WEB_OTA_PROTOCOL_VERSION) {
+            const waiter = otaAckWaiter;
+            otaAckWaiter = null;
+            clearTimeout(waiter.timeoutId);
+            const error = new Error('网页与设备的OTA协议版本不兼容');
+            error.retryable = false;
+            waiter.reject(error);
+            return;
+        }
+        if (status.command === WEB_OTA_COMMANDS.DATA &&
+            status.status === WEB_OTA_STATUS_OK &&
+            status.sequence !== otaAckWaiter.sequence) return;
+
+        const waiter = otaAckWaiter;
+        otaAckWaiter = null;
+        clearTimeout(waiter.timeoutId);
+        if (status.status === WEB_OTA_STATUS_OK ||
+            status.status === WEB_OTA_STATUS_COMPLETE) {
+            waiter.resolve(status);
+        } else {
+            const error = new Error(webOtaStatusMessage(status));
+            error.retryable = status.status === 0x88;
+            waiter.reject(error);
+        }
+    }
+
+    function webOtaStatusMessage(status) {
+        const messages = {
+            0x80: '设备当前不能开始该操作',
+            0x81: '固件大小或数据长度无效',
+            0x82: `数据包顺序错误，设备期望 ${status.sequence}`,
+            0x83: '设备无法初始化OTA分区',
+            0x84: '设备写入Flash失败',
+            0x85: '固件镜像校验失败',
+            0x86: '设备无法设置启动分区',
+            0x87: '传输超时，设备已取消更新',
+            0x88: '设备正忙，请重试',
+            0x89: '网页与设备的OTA协议版本不兼容',
+        };
+        return messages[status.status] || `设备返回错误 0x${status.status.toString(16).padStart(2, '0')}`;
+    }
+
+    function cancelOtaWaiter(error) {
+        if (!otaAckWaiter) return;
+        const waiter = otaAckWaiter;
+        otaAckWaiter = null;
+        clearTimeout(waiter.timeoutId);
+        waiter.reject(error);
+    }
+
+    async function exchangeWebOtaReport(report, command, sequence, timeoutMs, retryCount = 2) {
+        const deviceDefinition = hidDevice ? findDeviceDefinition(hidDevice) : null;
+        if (!hidDevice || !hidDevice.opened || !deviceDefinition) {
+            throw new Error('设备未连接');
+        }
+
+        let lastError = null;
+        for (let attempt = 0; attempt <= retryCount; attempt++) {
+            const responsePromise = new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    if (otaAckWaiter && otaAckWaiter.timeoutId === timeoutId) {
+                        otaAckWaiter = null;
+                    }
+                    const error = new Error('等待设备响应超时');
+                    error.retryable = true;
+                    reject(error);
+                }, timeoutMs);
+                otaAckWaiter = { command, sequence, resolve, reject, timeoutId };
+            });
+
+            try {
+                await hidDevice.sendReport(deviceDefinition.outputReportId, report);
+                return await responsePromise;
+            } catch (error) {
+                lastError = error;
+                cancelOtaWaiter(error);
+                await responsePromise.catch(() => {});
+                if (!hidDevice || !hidDevice.opened ||
+                    error.retryable === false || attempt === retryCount) break;
+            }
+        }
+        throw lastError || new Error('设备通信失败');
+    }
+
+    function setUint32LittleEndian(target, offset, value) {
+        target[offset] = value & 0xff;
+        target[offset + 1] = (value >>> 8) & 0xff;
+        target[offset + 2] = (value >>> 16) & 0xff;
+        target[offset + 3] = (value >>> 24) & 0xff;
+    }
+
+    function createWebOtaReport(command) {
+        const report = new Uint8Array(63);
+        report[0] = command;
+        report[1] = WEB_OTA_COMMAND_MAGIC[0];
+        report[2] = WEB_OTA_COMMAND_MAGIC[1];
+        return report;
+    }
+
+    async function abortWebOta() {
+        if (!hidDevice || !hidDevice.opened) return;
+        const deviceDefinition = findDeviceDefinition(hidDevice);
+        if (!deviceDefinition) return;
+        const report = createWebOtaReport(WEB_OTA_COMMANDS.ABORT);
+        try {
+            await hidDevice.sendReport(deviceDefinition.outputReportId, report);
+        } catch (_) {
+            // The device may already be restarting or disconnected.
+        }
+    }
+
+    function setOtaControlsBusy(isBusy) {
+        otaUploadActive = isBusy;
+        firmwareFileInput.disabled = isBusy;
+        firmwareUploadBtn.disabled = isBusy;
+        firmwareUpdateCloseBtn.style.visibility = isBusy ? 'hidden' : 'visible';
+    }
+
+    async function handleFirmwareUpload() {
+        if (!hidDevice || !hidDevice.opened) {
+            firmwareUpdateStatus.textContent = '请先点击右上角连接设备，再开始USB更新。';
+            return;
+        }
+        const file = firmwareFileInput.files[0];
+        if (!file) {
+            firmwareUpdateStatus.textContent = '请先选择固件文件。';
+            return;
+        }
+        if (!/\.bin$/i.test(file.name) || file.size === 0 ||
+            file.size > WEB_OTA_MAXIMUM_IMAGE_SIZE) {
+            firmwareUpdateStatus.textContent = '请选择不超过2 MiB的有效 .bin 应用固件。';
+            return;
+        }
+
+        const firmware = new Uint8Array(await file.arrayBuffer());
+        if (firmware[0] !== 0xE9) {
+            firmwareUpdateStatus.textContent = '文件不是有效的ESP应用固件。';
+            return;
+        }
+
+        setOtaControlsBusy(true);
+        firmwareUpdateProgress.value = 0;
+        let transferStarted = false;
+        try {
+            const beginReport = createWebOtaReport(WEB_OTA_COMMANDS.BEGIN);
+            beginReport[3] = WEB_OTA_PROTOCOL_VERSION;
+            setUint32LittleEndian(beginReport, 4, firmware.length);
+            firmwareUpdateStatus.textContent = '正在准备设备OTA分区…';
+            await exchangeWebOtaReport(beginReport, WEB_OTA_COMMANDS.BEGIN, 0, 10000);
+            transferStarted = true;
+
+            let sequence = 0;
+            let lastPercent = -1;
+            for (let offset = 0; offset < firmware.length; offset += WEB_OTA_DATA_SIZE) {
+                const chunk = firmware.subarray(offset, offset + WEB_OTA_DATA_SIZE);
+                const dataReport = createWebOtaReport(WEB_OTA_COMMANDS.DATA);
+                dataReport[3] = sequence & 0xff;
+                dataReport[4] = (sequence >>> 8) & 0xff;
+                dataReport[5] = chunk.length;
+                dataReport.set(chunk, 6);
+                await exchangeWebOtaReport(dataReport, WEB_OTA_COMMANDS.DATA,
+                    sequence, 5000);
+                sequence++;
+
+                const sent = Math.min(offset + chunk.length, firmware.length);
+                const percent = Math.round(sent * 100 / firmware.length);
+                if (percent !== lastPercent) {
+                    lastPercent = percent;
+                    firmwareUpdateProgress.value = percent;
+                    firmwareUpdateStatus.textContent = `正在传输固件… ${percent}%`;
+                }
+            }
+
+            const endReport = createWebOtaReport(WEB_OTA_COMMANDS.END);
+            firmwareUpdateStatus.textContent = '正在校验固件，请勿断电…';
+            await exchangeWebOtaReport(endReport, WEB_OTA_COMMANDS.END, 0, 30000, 0);
+            transferStarted = false;
+            firmwareUpdateProgress.value = 100;
+            firmwareUpdateStatus.textContent = '更新成功，设备正在重启。';
+        } catch (error) {
+            firmwareUpdateProgress.value = 0;
+            firmwareUpdateStatus.textContent = `更新失败：${error.message}`;
+            if (transferStarted) await abortWebOta();
+        } finally {
+            setOtaControlsBusy(false);
+        }
     }
 
     function decodeRawButtonStates(data) {
@@ -870,6 +1105,13 @@ document.addEventListener('DOMContentLoaded', () => {
     saveConfigBtn.addEventListener('click', handleSaveToFile);
     loadConfigBtn.addEventListener('click', () => loadConfigInput.click());
     loadConfigInput.addEventListener('change', handleLoadFromFile);
+    firmwareUpdateBtn.addEventListener('click', () => {
+        firmwareUpdateModal.style.display = 'flex';
+    });
+    firmwareUpdateCloseBtn.addEventListener('click', () => {
+        if (!otaUploadActive) firmwareUpdateModal.style.display = 'none';
+    });
+    firmwareUploadBtn.addEventListener('click', handleFirmwareUpload);
     ioLightOverrideSwitch.addEventListener('change', handleIoLightSwitchChange);
     usbModeSelect.addEventListener('change', () => setSelectedUsbMode(Number(usbModeSelect.value)));
     recordKeyBtn.addEventListener('click', handleRecordKey);
@@ -887,12 +1129,17 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', (event) => {
         if (event.target === modalContainer) hideModal();
         if (event.target === keycodeListModal) keycodeListModal.style.display = 'none';
+        if (event.target === firmwareUpdateModal && !otaUploadActive) {
+            firmwareUpdateModal.style.display = 'none';
+        }
     });
 
     document.addEventListener('keydown', (event) => {
         if (event.key === "Escape") {
             if (keycodeListModal.style.display !== 'none') {
                 keycodeListModal.style.display = 'none';
+            } else if (firmwareUpdateModal.style.display !== 'none' && !otaUploadActive) {
+                firmwareUpdateModal.style.display = 'none';
             } else if (modalContainer.style.display !== 'none') {
                 hideModal();
             }
