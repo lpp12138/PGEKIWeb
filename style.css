@@ -387,10 +387,93 @@ input:checked + .slider:before {
     transition: opacity .16s ease, visibility .16s ease;
 }
 
-.main-content.sensor-monitoring .action-controls-main {
+.main-content.controller-connected .action-controls-main {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+}
+
+.connection-method-content {
+    width: min(440px, calc(100vw - 48px));
+}
+
+.connection-method-close-btn {
+    cursor: pointer;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.connection-method-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.connection-method-card {
+    min-height: 112px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--input-bg);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    cursor: pointer;
+    font: inherit;
+    transition: transform .16s ease, border-color .16s ease,
+        background-color .16s ease;
+}
+
+.connection-method-card:hover:not(:disabled),
+.connection-method-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--accent-color-btn);
+    background: var(--key-bg-hover);
+}
+
+.connection-method-card:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.connection-method-card strong {
+    font-size: 17px;
+}
+
+.connection-method-icon {
+    min-width: 42px;
+    height: 42px;
+    padding: 0 7px;
+    border-radius: 12px;
+    background: var(--accent-color-btn);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+body.mobile-device .connection-method-usb {
+    display: none;
+}
+
+body.mobile-device .usb-only-control {
+    display: none !important;
+}
+
+body.mobile-device .connection-method-grid {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 560px) {
+    .connection-method-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .action-controls h3 {

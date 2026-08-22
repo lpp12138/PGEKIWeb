@@ -188,6 +188,27 @@
         </article>
     </main>
 
+    <div id="connection-method-modal" class="modal-container" style="display: none;">
+        <div class="modal-content connection-method-content" role="dialog" aria-modal="true"
+            aria-labelledby="connection-method-title">
+            <div class="modal-header">
+                <h2 id="connection-method-title" data-i18n="connection.title">选择连接方式</h2>
+                <span class="connection-method-close-btn" role="button" tabindex="0"
+                    aria-label="关闭" data-i18n-aria-label="common.close">&times;</span>
+            </div>
+            <div class="connection-method-grid">
+                <button id="connect-ble-btn" class="connection-method-card" type="button">
+                    <span class="connection-method-icon" aria-hidden="true">ᛒ</span>
+                    <strong data-i18n="connection.bluetooth">蓝牙</strong>
+                </button>
+                <button id="connect-hid-btn" class="connection-method-card connection-method-usb" type="button">
+                    <span class="connection-method-icon" aria-hidden="true">USB</span>
+                    <strong data-i18n="connection.usb">USB</strong>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="config-modal" class="modal-container" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -233,7 +254,7 @@
                 data-i18n-title="firmware.chooseFirmware">
             <progress id="firmware-update-progress" value="0" max="100"></progress>
             <p id="firmware-update-status" aria-live="polite" data-i18n="firmware.chooseSource">请选择仓库版本或本地固件。</p>
-            <button id="firmware-upload-btn" data-i18n="firmware.uploadUsb">通过USB上传</button>
+            <button id="firmware-upload-btn" class="usb-only-control" data-i18n="firmware.uploadUsb">通过USB上传</button>
             <div class="firmware-update-divider"><span data-i18n="firmware.alternative">备用方式</span></div>
             <a id="embedded-ota-link" class="firmware-update-link" href="http://10.10.10.1/" target="_blank" rel="noopener noreferrer" data-i18n="firmware.openEmbeddedPage">打开板载Wi-Fi上传页</a>
             <p class="firmware-update-hint" data-i18n="firmware.wifiHint">Wi-Fi方式：持续按住FUNC上电，等待5秒校准结束并进入OTA模式，连接开放热点PGEKI2后再打开。旧固件首次升级也请使用此方式。</p>

@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'header.firmwareVersionTitle': '控制器当前运行的固件版本',
             'header.connect': '点我连接设备喵',
             'header.write': '点我写入配置 ✅',
+            'connection.title': '选择连接方式',
+            'connection.bluetooth': '蓝牙',
+            'connection.usb': 'USB',
             'sensor.sensitivity': '灵敏度',
             'sensor.moreSensitive': '更灵敏',
             'sensor.moreStable': '更稳',
@@ -159,6 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'alert.noDevice': '喵喵喵? 没有找到设备哦~',
             'alert.incompatibleDevice': '选中的设备没有兼容的PGEKI HID接口。',
             'alert.connectFailed': '连接失败了喵',
+            'alert.bluetoothUnsupported': '当前浏览器不支持蓝牙连接，请使用支持 Web Bluetooth 的浏览器。',
+            'alert.bluetoothConnectFailed': '蓝牙连接失败，请确认控制器已开启并在附近。',
+            'alert.hidUnsupported': '当前浏览器不支持 USB HID 连接。',
             'alert.fixedIoKeys': '喵呜！IO模式下的按键是固定的，不能重置哦~ (づ｡◕‿‿◕｡)づ',
             'alert.deviceNotConnected': '设备还没连接呢~ 请先连接设备哦！(＞д＜)',
             'alert.writingProfile': '正在写入配置文件... 请稍候哦~ ( V.v)V',
@@ -211,6 +217,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'header.firmwareVersionTitle': 'Firmware version currently running on the controller',
             'header.connect': 'Connect device',
             'header.write': 'Write configuration ✅',
+            'connection.title': 'Choose a connection',
+            'connection.bluetooth': 'Bluetooth',
+            'connection.usb': 'USB',
             'sensor.sensitivity': 'Sensitivity',
             'sensor.moreSensitive': 'More sensitive',
             'sensor.moreStable': 'More stable',
@@ -337,6 +346,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'alert.noDevice': 'No device was selected.',
             'alert.incompatibleDevice': 'The selected device has no compatible PGEKI HID interface.',
             'alert.connectFailed': 'Could not connect to the device.',
+            'alert.bluetoothUnsupported': 'This browser does not support Bluetooth connections. Use a Web Bluetooth compatible browser.',
+            'alert.bluetoothConnectFailed': 'Bluetooth connection failed. Make sure the controller is powered on and nearby.',
+            'alert.hidUnsupported': 'This browser does not support USB HID connections.',
             'alert.fixedIoKeys': 'Keys are fixed in IO mode and cannot be reset.',
             'alert.deviceNotConnected': 'Connect the device first.',
             'alert.writingProfile': 'Writing configuration… Please wait.',
@@ -488,6 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const actionDeleteBtn = document.getElementById('action-delete-btn');
     const actionStatusText = document.getElementById('action-status');
     const connectBtn = document.getElementById('connect-btn');
+    const connectionMethodModal = document.getElementById('connection-method-modal');
+    const connectionMethodCloseBtn = document.querySelector('.connection-method-close-btn');
+    const connectBleBtn = document.getElementById('connect-ble-btn');
+    const connectHidBtn = document.getElementById('connect-hid-btn');
     const firmwareVersion = document.getElementById('firmware-version');
     const mainContent = document.querySelector('.main-content');
     const modalContainer = document.getElementById('config-modal');
@@ -607,10 +623,28 @@ document.addEventListener('DOMContentLoaded', () => {
             sensorFeatureReportId: 0x11,
         },
     ]);
+    const BLE_SERVICE_UUID = '7ad37e00-7c67-4f4f-8a33-31e2b7d5a001';
+    const BLE_STATE_UUID = '7ad37e01-7c67-4f4f-8a33-31e2b7d5a001';
+    const BLE_COMMAND_UUID = '7ad37e02-7c67-4f4f-8a33-31e2b7d5a001';
+    const BLE_INFO_UUID = '7ad37e03-7c67-4f4f-8a33-31e2b7d5a001';
+    const BLE_PROTOCOL_VERSION = 1;
+    const BLE_FRAGMENT_HEADER = 0xbc;
+    const BLE_FRAGMENT_PAYLOAD_SIZE = 16;
+    const BLE_CAPABILITY_ACTION = 1 << 0;
     const buttonIndexToKeyId = Object.freeze([1, 2, 3, 0, 8, 4, 5, 6, 7, 9]);
 
     // --- State ---
     let hidDevice = null;
+    let bleDevice = null;
+    let bleServer = null;
+    let bleStateCharacteristic = null;
+    let bleCommandCharacteristic = null;
+    let bleInfoCharacteristic = null;
+    let bleFirmwareVersion = null;
+    let bleCapabilities = 0;
+    let bleTransaction = 0;
+    let bleExtendedWriteAvailable = null;
+    let connectionTransport = null;
     let connectedUsbMode = null;
     let selectedKeyId = null;
     let currentProfile = 0;
@@ -639,6 +673,71 @@ document.addEventListener('DOMContentLoaded', () => {
         right: collectSensorCardElements('right'),
     };
     let profiles = loadProfiles() || Array(6).fill(null).map(() => ({}));
+
+    const mobileDevice = Boolean(navigator.userAgentData &&
+        navigator.userAgentData.mobile) ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+        (window.matchMedia('(pointer: coarse)').matches &&
+            Math.min(window.screen.width, window.screen.height) < 820);
+    document.body.classList.toggle('mobile-device', mobileDevice);
+    connectHidBtn.disabled = !('hid' in navigator);
+    connectBleBtn.disabled = !('bluetooth' in navigator);
+
+    function controllerConnected() {
+        return connectionTransport === 'hid'
+            ? Boolean(hidDevice && hidDevice.opened)
+            : connectionTransport === 'ble'
+                ? Boolean(bleDevice && bleDevice.gatt.connected)
+                : false;
+    }
+
+    async function sendControllerReport(report) {
+        if (connectionTransport === 'hid') {
+            const deviceDefinition = hidDevice ? findDeviceDefinition(hidDevice) : null;
+            if (!hidDevice || !hidDevice.opened || !deviceDefinition) {
+                throw new Error(translate('error.deviceDisconnected'));
+            }
+            await hidDevice.sendReport(deviceDefinition.outputReportId, report);
+            return;
+        }
+        if (connectionTransport !== 'ble' || !bleCommandCharacteristic ||
+            !bleDevice || !bleDevice.gatt.connected) {
+            throw new Error(translate('error.deviceDisconnected'));
+        }
+
+        if (bleExtendedWriteAvailable !== false) {
+            try {
+                if (typeof bleCommandCharacteristic.writeValueWithResponse === 'function') {
+                    await bleCommandCharacteristic.writeValueWithResponse(report);
+                } else {
+                    await bleCommandCharacteristic.writeValue(report);
+                }
+                bleExtendedWriteAvailable = true;
+                return;
+            } catch (error) {
+                if (bleExtendedWriteAvailable === true) throw error;
+                bleExtendedWriteAvailable = false;
+            }
+        }
+
+        const transaction = bleTransaction++ & 0xff;
+        for (let offset = 0; offset < report.byteLength;
+            offset += BLE_FRAGMENT_PAYLOAD_SIZE) {
+            const payload = report.slice(offset,
+                offset + BLE_FRAGMENT_PAYLOAD_SIZE);
+            const fragment = new Uint8Array(4 + payload.byteLength);
+            fragment[0] = BLE_FRAGMENT_HEADER;
+            fragment[1] = transaction;
+            fragment[2] = offset;
+            fragment[3] = report.byteLength;
+            fragment.set(payload, 4);
+            if (typeof bleCommandCharacteristic.writeValueWithResponse === 'function') {
+                await bleCommandCharacteristic.writeValueWithResponse(fragment);
+            } else {
+                await bleCommandCharacteristic.writeValue(fragment);
+            }
+        }
+    }
 
     // --- Keycode Map ---
     const hidKeycodeMap = {
@@ -1019,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function refreshActionControls() {
-        const available = Boolean(hidDevice && hidDevice.opened) &&
+        const available = controllerConnected() &&
             actionTelemetrySupported && currentActionStatus && !otaUploadActive;
         const state = currentActionStatus ? currentActionStatus.state : null;
         const idle = state === WEB_ACTION_STATES.IDLE ||
@@ -1045,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (actionCommandErrorKey) {
             setActionStatusText(actionCommandErrorKey, 'is-error');
-        } else if (!hidDevice || !hidDevice.opened) {
+        } else if (!controllerConnected()) {
             setActionStatusText('action.disconnected');
         } else if (!status) {
             setActionStatusText('action.unsupported');
@@ -1098,8 +1197,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function sendActionCommand(operation, slot = selectedActionSlot(),
         flags = 0) {
-        const deviceDefinition = hidDevice ? findDeviceDefinition(hidDevice) : null;
-        if (!hidDevice || !hidDevice.opened || !deviceDefinition) {
+        if (!controllerConnected()) {
             actionCommandErrorKey = 'action.communicationFailed';
             renderActionStatus(currentActionStatus);
             return;
@@ -1117,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionCommandInProgress = true;
         refreshActionControls();
         try {
-            await hidDevice.sendReport(deviceDefinition.outputReportId, report);
+            await sendControllerReport(report);
         } catch (_) {
             actionCommandErrorKey = 'action.communicationFailed';
         } finally {
@@ -1411,7 +1509,36 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Handles the click event on the connect button.
      */
-    async function handleConnect() {
+    function showConnectionMethodModal() {
+        connectionMethodModal.style.display = 'flex';
+    }
+
+    function hideConnectionMethodModal() {
+        connectionMethodModal.style.display = 'none';
+    }
+
+    function resetControllerConnection() {
+        connectionTransport = null;
+        connectedUsbMode = null;
+        bleServer = null;
+        bleStateCharacteristic = null;
+        bleCommandCharacteristic = null;
+        bleInfoCharacteristic = null;
+        bleFirmwareVersion = null;
+        bleCapabilities = 0;
+        bleExtendedWriteAvailable = null;
+        mainContent.classList.remove('controller-connected');
+        stopSensorTelemetry();
+        renderFirmwareVersion(null);
+        updateButtonStates(Array(10).fill(false));
+        setConnectButtonState(false);
+    }
+
+    async function handleHidConnect() {
+        if (!('hid' in navigator)) {
+            showCustomAlert(translate('alert.hidUnsupported'));
+            return;
+        }
         try {
             const filters = USB_DEVICE_DEFINITIONS.map(({
                 vendorId,
@@ -1437,7 +1564,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 await hidDevice.open();
             }
             connectedUsbMode = deviceDefinition.mode;
+            connectionTransport = 'hid';
             setSelectedUsbMode(connectedUsbMode);
+            mainContent.classList.add('controller-connected');
             
             // Update button to show connected state
             setConnectButtonState(true);
@@ -1457,16 +1586,105 @@ document.addEventListener('DOMContentLoaded', () => {
                     stopSensorTelemetry();
                     //console.log('设备已断开连接喵！');
                     hidDevice = null;
-                    connectedUsbMode = null;
-                    renderFirmwareVersion(null);
-                    updateButtonStates(Array(10).fill(false));
-                    setConnectButtonState(false);
+                    resetControllerConnection();
                 }
             });
 
         } catch (error) {
             //console.error('连接HID设备时出错了喵:', error);
             showCustomAlert(translate('alert.connectFailed'));
+        }
+    }
+
+    function decodeBleInfo(value) {
+        if (value.byteLength < 10 || value.getUint8(0) !== 0x50 ||
+            value.getUint8(1) !== 0x47 ||
+            value.getUint8(2) !== BLE_PROTOCOL_VERSION) {
+            throw new Error('Unsupported PGEKI BLE information packet');
+        }
+        bleFirmwareVersion = [value.getUint8(3), value.getUint8(4),
+            value.getUint8(5)].join('.');
+        bleCapabilities = value.getUint8(8);
+        connectedUsbMode = value.getUint8(9) === 1
+            ? USB_MODES.IO4
+            : USB_MODES.RAW_IO;
+        renderFirmwareVersion(bleFirmwareVersion);
+        setSelectedUsbMode(connectedUsbMode);
+    }
+
+    function handleBleInfo(event) {
+        try {
+            decodeBleInfo(event.target.value);
+        } catch (_) {
+            // Ignore malformed asynchronous metadata without dropping input.
+        }
+    }
+
+    function handleBleState(eventOrValue) {
+        const data = eventOrValue instanceof DataView
+            ? eventOrValue
+            : eventOrValue.target.value;
+        if (data.byteLength !== 20 || data.getUint8(0) !== 0x50 ||
+            data.getUint8(1) !== 0x47 ||
+            data.getUint8(2) !== BLE_PROTOCOL_VERSION) return;
+
+        const buttonStates = Array.from({ length: 10 }, (_, index) =>
+            data.getUint8(4 + index) !== 0);
+        const lever = Math.max(-1, Math.min(1,
+            data.getInt16(14, true) / 16383));
+        updateButtonStates(buttonStates);
+        renderLeverPosition(lever);
+        renderActionStatus((bleCapabilities & BLE_CAPABILITY_ACTION) !== 0
+            ? decodeActionTelemetry(data, 16, bleFirmwareVersion)
+            : null);
+    }
+
+    function handleBleDisconnect() {
+        bleDevice = null;
+        resetControllerConnection();
+    }
+
+    async function handleBleConnect() {
+        if (!('bluetooth' in navigator)) {
+            showCustomAlert(translate('alert.bluetoothUnsupported'));
+            return;
+        }
+        try {
+            bleDevice = await navigator.bluetooth.requestDevice({
+                filters: [{ services: [BLE_SERVICE_UUID] }],
+                optionalServices: [BLE_SERVICE_UUID],
+            });
+            bleDevice.addEventListener('gattserverdisconnected',
+                handleBleDisconnect, { once: true });
+            bleServer = await bleDevice.gatt.connect();
+            const service = await bleServer.getPrimaryService(BLE_SERVICE_UUID);
+            [bleStateCharacteristic, bleCommandCharacteristic,
+                bleInfoCharacteristic] = await Promise.all([
+                service.getCharacteristic(BLE_STATE_UUID),
+                service.getCharacteristic(BLE_COMMAND_UUID),
+                service.getCharacteristic(BLE_INFO_UUID),
+            ]);
+
+            const info = await bleInfoCharacteristic.readValue();
+            decodeBleInfo(info);
+            bleInfoCharacteristic.addEventListener(
+                'characteristicvaluechanged', handleBleInfo);
+            await bleInfoCharacteristic.startNotifications();
+            bleStateCharacteristic.addEventListener(
+                'characteristicvaluechanged', handleBleState);
+            await bleStateCharacteristic.startNotifications();
+
+            connectionTransport = 'ble';
+            mainContent.classList.remove('sensor-monitoring');
+            mainContent.classList.add('controller-connected');
+            resetSensorMonitor();
+            setConnectButtonState(true);
+            handleBleState(await bleStateCharacteristic.readValue());
+        } catch (error) {
+            if (bleDevice && bleDevice.gatt.connected) bleDevice.gatt.disconnect();
+            bleDevice = null;
+            resetControllerConnection();
+            showCustomAlert(translate('alert.bluetoothConnectFailed'));
         }
     }
 
@@ -2140,7 +2358,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Builds a 63-byte WebHID configuration packet and sends it to the device.
      */
     async function handleUploadProfile() {
-        if (!hidDevice) {
+        if (!controllerConnected()) {
             showCustomAlert(translate('alert.deviceNotConnected'));
             return;
         }
@@ -2150,10 +2368,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // A short delay to allow the pending message to render before potential blocking operation
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        const deviceDefinition = USB_DEVICE_DEFINITIONS.find(({ vendorId, productId }) =>
-            hidDevice.vendorId === vendorId && hidDevice.productId === productId
-        );
-        if (!deviceDefinition) {
+        const deviceDefinition = connectionTransport === 'hid'
+            ? findDeviceDefinition(hidDevice)
+            : null;
+        if (connectionTransport === 'hid' && !deviceDefinition) {
             showCustomAlert(translate('alert.unsupportedDevice'));
             return;
         }
@@ -2164,7 +2382,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetUsbMode = currentProfile === 0
             ? selectedIoUsbMode
             : USB_MODES.RAW_IO;
-        const reportId = deviceDefinition.outputReportId;
         const data = new Uint8Array(63);
         const currentConfig = profiles[currentProfile];
         data[0] = WEB_CONFIG_COMMAND;
@@ -2201,13 +2418,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- 调试日志 ---
         //console.log('--- 准备发送HID报告 ---');
         //console.log(`目标设备喵:`, hidDevice.productName);
-        //console.log(`使用的 Report ID: ${reportId}`);
+        //console.log(`传输方式: ${connectionTransport}`);
         //console.log(`数据包 (Uint8Array, 长度: ${data.length} bytes):`, data);
         //console.log(`数据包内容 (Hex): ${Array.from(data).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
         //console.log('------------------------');
 
         try {
-            await hidDevice.sendReport(reportId, data);
+            await sendControllerReport(data);
             if (currentProfile === 0) {
                 setSelectedUsbMode(selectedIoUsbMode);
             }
@@ -2396,7 +2613,28 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('sidebar-collapsed');
     });
 
-    connectBtn.addEventListener('click', () => hidDevice && hidDevice.opened ? handleUploadProfile() : handleConnect());
+    connectBtn.addEventListener('click', () => controllerConnected()
+        ? handleUploadProfile()
+        : showConnectionMethodModal());
+    connectBleBtn.addEventListener('click', () => {
+        hideConnectionMethodModal();
+        handleBleConnect();
+    });
+    connectHidBtn.addEventListener('click', () => {
+        hideConnectionMethodModal();
+        handleHidConnect();
+    });
+    connectionMethodCloseBtn.addEventListener('click',
+        hideConnectionMethodModal);
+    connectionMethodCloseBtn.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            hideConnectionMethodModal();
+        }
+    });
+    connectionMethodModal.addEventListener('click', event => {
+        if (event.target === connectionMethodModal) hideConnectionMethodModal();
+    });
     saveBtn.addEventListener('click', handleSave);
     closeBtn.addEventListener('click', hideModal);
     resetLightsBtn.addEventListener('click', handleResetLights);
