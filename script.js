@@ -1,5 +1,395 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const LANGUAGE_STORAGE_KEY = 'pgeki-language';
+    const TRANSLATIONS = Object.freeze({
+        'zh-CN': Object.freeze({
+            'common.none': '无',
+            'common.close': '关闭',
+            'common.ok': '知道了喵!',
+            'common.confirm': '确定',
+            'common.cancel': '取消',
+            'language.label': '语言',
+            'language.title': '切换界面语言',
+            'sidebar.toolbox': '工具箱',
+            'sidebar.keycodes': '📖查看键码',
+            'sidebar.resetLights': '✨重置灯光',
+            'sidebar.resetKeys': '⌨️重置按键',
+            'sidebar.resetAll': '💥重置全部',
+            'sidebar.ioSettings': 'IO设置',
+            'sidebar.ioLightOverride': '接管IO灯光',
+            'sidebar.deviceCommunication': '设备通信',
+            'sidebar.usbMode': 'USB模式',
+            'sidebar.usbModeTitle': '选择写入后使用的USB通信模式',
+            'sidebar.rawIo': '原始IO（兼容）',
+            'sidebar.io4': 'IO4（实验）',
+            'sidebar.usbModeHint': '切换模式会在写入配置后重启设备，请重新连接。',
+            'sidebar.firmwareMaintenance': '固件维护',
+            'sidebar.firmwareUpdate': '⬆️固件更新',
+            'sidebar.firmwareHint': '可通过当前USB连接直接更新，也可进入OTA模式后使用板载页面。',
+            'sidebar.otherSettings': '其他设置',
+            'sidebar.saveConfig': '💾保存配置',
+            'sidebar.loadConfig': '📁载入配置',
+            'sidebar.loadConfigTitle': '载入配置',
+            'sidebar.switchTheme': '🗘切换主题',
+            'header.firmwareVersion': '固件 v{version}',
+            'header.firmwareVersionTitle': '控制器当前运行的固件版本',
+            'header.connect': '点我连接设备喵',
+            'header.write': '点我写入配置 ✅',
+            'sensor.sensitivity': '灵敏度',
+            'sensor.moreSensitive': '更灵敏',
+            'sensor.moreStable': '更稳',
+            'sensor.waiting': '等待控制器',
+            'sensor.leftChartLabel': '左侧键实时传感信号图表',
+            'sensor.rightChartLabel': '右侧键实时传感信号图表',
+            'sensor.signal': '信号 {value}',
+            'sensor.press': '触发 {value}',
+            'sensor.release': '释放 {value}',
+            'sensor.signalEmpty': '信号 --',
+            'sensor.pressEmpty': '触发 --',
+            'sensor.releaseEmpty': '释放 --',
+            'sensor.raw': '原始',
+            'sensor.filtered': '滤波',
+            'sensor.baseline': '自适应基线',
+            'sensor.chartStatusLeft': '左侧键信号 {signal}，触发阈值 {press}，释放阈值 {release}，灵敏度 {sensitivity}',
+            'sensor.chartStatusRight': '右侧键信号 {signal}，触发阈值 {press}，释放阈值 {release}，灵敏度 {sensitivity}',
+            'sensor.notConfirmed': '控制器未确认，请重试',
+            'sensor.saving': '正在保存…',
+            'sensor.waitingConfirmation': '等待控制器确认…',
+            'sensor.writeFailed': '写入失败，请重试',
+            'sensor.syncedController': '已同步到控制器',
+            'sensor.synced': '已同步',
+            'sensor.unsupported': '当前固件不支持调节',
+            'keyConfig.title': '按键配置',
+            'keyConfig.color': '颜色:',
+            'keyConfig.key': '键位:',
+            'keyConfig.startRecording': '开始录制 🔴',
+            'keyConfig.recording': '请按键...点击取消',
+            'keyConfig.unmapped': '未映射 :(',
+            'keyConfig.keycodePlaceholder': '按键键码 例如: 0x04',
+            'keyConfig.toggleInputMode': '切换输入模式',
+            'keyConfig.save': '保存更改 ✔️',
+            'keyConfig.invalidKeycode': '请输入一个有效的键码 (0-255 或 0x00-0xFF) 哦~ ( ´•_•。)',
+            'firmware.title': '固件更新',
+            'firmware.description': 'USB更新需要先连接设备。可直接选择仓库中的正式固件，传输和校验期间请勿断电。',
+            'firmware.repositoryFirmware': '仓库固件',
+            'firmware.loadingVersions': '正在读取可用版本…',
+            'firmware.loadingCatalog': '正在读取固件目录…',
+            'firmware.orLocal': '或选择本地固件',
+            'firmware.chooseFirmware': '选择固件',
+            'firmware.chooseSource': '请选择仓库版本或本地固件。',
+            'firmware.uploadUsb': '通过USB上传',
+            'firmware.alternative': '备用方式',
+            'firmware.openEmbeddedPage': '打开板载Wi-Fi上传页',
+            'firmware.wifiHint': 'Wi-Fi方式：持续按住FUNC上电，等待5秒校准结束并进入OTA模式，连接开放热点PGEKI2后再打开。旧固件首次升级也请使用此方式。',
+            'firmware.chooseRepositoryOrLocal': '请选择一个仓库固件版本，或上传本地 .bin 文件。',
+            'firmware.repositoryUnavailable': '仓库固件暂不可用，仍可选择本地 .bin 文件。',
+            'firmware.noRepositoryFirmware': '没有可用的仓库固件',
+            'firmware.selectedRepository': '已选择仓库固件 v{version}。',
+            'firmware.catalogLoadFailed': '读取仓库固件失败：{message}',
+            'firmware.readingLocal': '正在读取 {name}…',
+            'firmware.downloading': '正在下载仓库固件 v{version}…',
+            'firmware.verifying': '正在校验仓库固件 v{version}…',
+            'firmware.connectFirst': '请先点击右上角连接设备，再开始USB更新。',
+            'firmware.preparing': '正在准备设备OTA分区…',
+            'firmware.transferring': '正在传输固件… {percent}%',
+            'firmware.finalVerifying': '正在校验固件，请勿断电…',
+            'firmware.success': '更新成功，设备正在重启。',
+            'firmware.failed': '更新失败：{message}',
+            'firmware.selectedLocal': '已选择本地固件 {name}。',
+            'firmware.error.protocol': '网页与设备的OTA协议版本不兼容',
+            'firmware.error.unavailable': '设备当前不能开始该操作',
+            'firmware.error.invalidLength': '固件大小或数据长度无效',
+            'firmware.error.sequence': '数据包顺序错误，设备期望 {sequence}',
+            'firmware.error.partition': '设备无法初始化OTA分区',
+            'firmware.error.flash': '设备写入Flash失败',
+            'firmware.error.image': '固件镜像校验失败',
+            'firmware.error.bootPartition': '设备无法设置启动分区',
+            'firmware.error.timeout': '传输超时，设备已取消更新',
+            'firmware.error.busy': '设备正忙，请重试',
+            'firmware.error.deviceCode': '设备返回错误 0x{code}',
+            'firmware.error.disconnected': '设备未连接',
+            'firmware.error.responseTimeout': '等待设备响应超时',
+            'firmware.error.communication': '设备通信失败',
+            'firmware.error.invalidPath': '固件目录包含无效路径',
+            'firmware.error.outsidePath': '固件目录包含越界路径',
+            'firmware.error.catalogFormat': '固件目录格式不受支持',
+            'firmware.error.imageSize': '固件大小必须在1字节到2 MiB之间',
+            'firmware.error.invalidImage': '文件不是有效的ESP应用固件',
+            'firmware.error.integrityUnsupported': '当前浏览器不支持仓库固件完整性校验',
+            'firmware.error.localExtension': '本地固件必须是 .bin 文件',
+            'firmware.error.selectSource': '请先选择仓库版本或本地固件文件',
+            'firmware.error.download': '下载固件失败：HTTP {status}',
+            'firmware.error.sizeMismatch': '仓库固件大小校验失败',
+            'firmware.error.shaMismatch': '仓库固件SHA-256校验失败',
+            'keycodes.title': 'HID Keycode 列表 📚',
+            'keycodes.letters': '字母',
+            'keycodes.numbersSymbols': '数字与符号（主键区）',
+            'keycodes.functionKeys': '功能键',
+            'keycodes.controlNavigation': '控制与导航键',
+            'keycodes.modifierKeys': '修饰键',
+            'keycodes.numpad': '数字键盘',
+            'keycodes.mediaKeys': '媒体键',
+            'alert.noDevice': '喵喵喵? 没有找到设备哦~',
+            'alert.incompatibleDevice': '选中的设备没有兼容的PGEKI HID接口。',
+            'alert.connectFailed': '连接失败了喵',
+            'alert.fixedIoKeys': '喵呜！IO模式下的按键是固定的，不能重置哦~ (づ｡◕‿‿◕｡)づ',
+            'alert.deviceNotConnected': '设备还没连接呢~ 请先连接设备哦！(＞д＜)',
+            'alert.writingProfile': '正在写入配置文件... 请稍候哦~ ( V.v)V',
+            'alert.unsupportedDevice': '当前连接的设备型号不受支持。',
+            'alert.modeRestart': '配置已写入，设备将切换USB模式并重启。请等待设备重新出现后再次连接。',
+            'alert.profileWritten': '配置文件 {profile} 已成功写入！🎉',
+            'alert.profileWriteFailed': '配置文件写入失败了喵...〒▽〒\n重启浏览器试试~',
+            'alert.profileEmpty': '配置文件 {profile} 是空的，没什么可保存的哦~ (´｡• ᵕ •｡`)',
+            'alert.profileLoaded': '配置已成功载入到配置文件 {profile}！开心~ (ﾉ>ω<)ﾉ',
+            'alert.invalidProfileFile': '这个文件格式好像不对哦，请选择一个单个配置的文件~ ( ´•_•。)',
+            'alert.invalidJson': '呜... 这不是一个有效的JSON配置文件呢... (｡•́︿•̀｡)',
+            'alert.fileReadFailed': '读取文件时出错了喵... (｡•́︿•̀｡)',
+            'alert.readingConfig': '正在读取配置文件... 请稍候~ (ﾐⓛᆽⓛﾐ)',
+            'confirm.resetLights': '确定要重置当前配置文件的所有灯光吗？\n✨ 这个操作是本地的，需要写入手台才会生效哦~',
+            'confirm.resetKeys': '确定要重置当前配置文件的所有按键吗？\n⌨️ 这个操作是本地的，需要写入手台才会生效哦~',
+            'confirm.resetAll': '确定要重置当前配置文件吗？\n💥 这个操作是本地的，需要写入手台才会生效哦~',
+            'error.sensorProtocol': '传感遥测协议不兼容',
+            'error.deviceDisconnected': '设备已断开连接',
+        }),
+        en: Object.freeze({
+            'common.none': 'None',
+            'common.close': 'Close',
+            'common.ok': 'Got it!',
+            'common.confirm': 'Confirm',
+            'common.cancel': 'Cancel',
+            'language.label': 'Language',
+            'language.title': 'Switch interface language',
+            'sidebar.toolbox': 'Toolbox',
+            'sidebar.keycodes': '📖 Keycodes',
+            'sidebar.resetLights': '✨ Reset lights',
+            'sidebar.resetKeys': '⌨️ Reset keys',
+            'sidebar.resetAll': '💥 Reset all',
+            'sidebar.ioSettings': 'IO settings',
+            'sidebar.ioLightOverride': 'Override IO lighting',
+            'sidebar.deviceCommunication': 'Device communication',
+            'sidebar.usbMode': 'USB mode',
+            'sidebar.usbModeTitle': 'Select the USB communication mode used after writing',
+            'sidebar.rawIo': 'Raw IO (compatible)',
+            'sidebar.io4': 'IO4 (experimental)',
+            'sidebar.usbModeHint': 'Changing modes restarts the device after writing. Reconnect afterward.',
+            'sidebar.firmwareMaintenance': 'Firmware',
+            'sidebar.firmwareUpdate': '⬆️ Firmware update',
+            'sidebar.firmwareHint': 'Update over the current USB connection or use the embedded page in OTA mode.',
+            'sidebar.otherSettings': 'Other settings',
+            'sidebar.saveConfig': '💾 Save config',
+            'sidebar.loadConfig': '📁 Load config',
+            'sidebar.loadConfigTitle': 'Load configuration',
+            'sidebar.switchTheme': '🗘 Switch theme',
+            'header.firmwareVersion': 'Firmware v{version}',
+            'header.firmwareVersionTitle': 'Firmware version currently running on the controller',
+            'header.connect': 'Connect device',
+            'header.write': 'Write configuration ✅',
+            'sensor.sensitivity': 'Sensitivity',
+            'sensor.moreSensitive': 'More sensitive',
+            'sensor.moreStable': 'More stable',
+            'sensor.waiting': 'Waiting for controller',
+            'sensor.leftChartLabel': 'Live left side-key sensor chart',
+            'sensor.rightChartLabel': 'Live right side-key sensor chart',
+            'sensor.signal': 'Signal {value}',
+            'sensor.press': 'Press {value}',
+            'sensor.release': 'Release {value}',
+            'sensor.signalEmpty': 'Signal --',
+            'sensor.pressEmpty': 'Press --',
+            'sensor.releaseEmpty': 'Release --',
+            'sensor.raw': 'Raw',
+            'sensor.filtered': 'Filtered',
+            'sensor.baseline': 'Adaptive baseline',
+            'sensor.chartStatusLeft': 'Left side-key signal {signal}, press threshold {press}, release threshold {release}, sensitivity {sensitivity}',
+            'sensor.chartStatusRight': 'Right side-key signal {signal}, press threshold {press}, release threshold {release}, sensitivity {sensitivity}',
+            'sensor.notConfirmed': 'Controller did not confirm. Try again.',
+            'sensor.saving': 'Saving…',
+            'sensor.waitingConfirmation': 'Waiting for controller confirmation…',
+            'sensor.writeFailed': 'Write failed. Try again.',
+            'sensor.syncedController': 'Synced to controller',
+            'sensor.synced': 'Synced',
+            'sensor.unsupported': 'This firmware does not support adjustment',
+            'keyConfig.title': 'Key configuration',
+            'keyConfig.color': 'Color:',
+            'keyConfig.key': 'Key:',
+            'keyConfig.startRecording': 'Record a key 🔴',
+            'keyConfig.recording': 'Press a key… click to cancel',
+            'keyConfig.unmapped': 'Unmapped :(',
+            'keyConfig.keycodePlaceholder': 'Keycode, for example: 0x04',
+            'keyConfig.toggleInputMode': 'Switch input mode',
+            'keyConfig.save': 'Save changes ✔️',
+            'keyConfig.invalidKeycode': 'Enter a valid keycode (0-255 or 0x00-0xFF).',
+            'firmware.title': 'Firmware update',
+            'firmware.description': 'Connect the device before updating over USB. Select an official repository build and do not disconnect power during transfer or verification.',
+            'firmware.repositoryFirmware': 'Repository firmware',
+            'firmware.loadingVersions': 'Loading available versions…',
+            'firmware.loadingCatalog': 'Loading firmware catalog…',
+            'firmware.orLocal': 'Or choose local firmware',
+            'firmware.chooseFirmware': 'Choose firmware',
+            'firmware.chooseSource': 'Choose a repository version or local firmware.',
+            'firmware.uploadUsb': 'Upload over USB',
+            'firmware.alternative': 'Alternative method',
+            'firmware.openEmbeddedPage': 'Open embedded Wi-Fi upload page',
+            'firmware.wifiHint': 'Wi-Fi method: hold FUNC while powering on, wait for the 5-second calibration and OTA mode, connect to the open PGEKI2 hotspot, then open the page. Use this method for the first upgrade from older firmware.',
+            'firmware.chooseRepositoryOrLocal': 'Choose a repository firmware version or upload a local .bin file.',
+            'firmware.repositoryUnavailable': 'Repository firmware is unavailable. You can still choose a local .bin file.',
+            'firmware.noRepositoryFirmware': 'No repository firmware available',
+            'firmware.selectedRepository': 'Selected repository firmware v{version}.',
+            'firmware.catalogLoadFailed': 'Failed to load repository firmware: {message}',
+            'firmware.readingLocal': 'Reading {name}…',
+            'firmware.downloading': 'Downloading repository firmware v{version}…',
+            'firmware.verifying': 'Verifying repository firmware v{version}…',
+            'firmware.connectFirst': 'Connect the device in the upper-right before starting a USB update.',
+            'firmware.preparing': 'Preparing the device OTA partition…',
+            'firmware.transferring': 'Transferring firmware… {percent}%',
+            'firmware.finalVerifying': 'Verifying firmware. Do not disconnect power…',
+            'firmware.success': 'Update complete. The device is restarting.',
+            'firmware.failed': 'Update failed: {message}',
+            'firmware.selectedLocal': 'Selected local firmware {name}.',
+            'firmware.error.protocol': 'The web app and device OTA protocol versions are incompatible',
+            'firmware.error.unavailable': 'The device cannot start this operation right now',
+            'firmware.error.invalidLength': 'The firmware size or data length is invalid',
+            'firmware.error.sequence': 'Packet sequence error; the device expected {sequence}',
+            'firmware.error.partition': 'The device could not initialize the OTA partition',
+            'firmware.error.flash': 'The device failed to write flash',
+            'firmware.error.image': 'Firmware image verification failed',
+            'firmware.error.bootPartition': 'The device could not set the boot partition',
+            'firmware.error.timeout': 'Transfer timed out and the device cancelled the update',
+            'firmware.error.busy': 'The device is busy. Try again.',
+            'firmware.error.deviceCode': 'Device returned error 0x{code}',
+            'firmware.error.disconnected': 'Device is not connected',
+            'firmware.error.responseTimeout': 'Timed out waiting for the device response',
+            'firmware.error.communication': 'Device communication failed',
+            'firmware.error.invalidPath': 'The firmware catalog contains an invalid path',
+            'firmware.error.outsidePath': 'The firmware catalog path escapes its allowed directory',
+            'firmware.error.catalogFormat': 'The firmware catalog format is unsupported',
+            'firmware.error.imageSize': 'Firmware size must be between 1 byte and 2 MiB',
+            'firmware.error.invalidImage': 'The file is not a valid ESP application image',
+            'firmware.error.integrityUnsupported': 'This browser cannot verify repository firmware integrity',
+            'firmware.error.localExtension': 'Local firmware must be a .bin file',
+            'firmware.error.selectSource': 'Select a repository version or local firmware file first',
+            'firmware.error.download': 'Firmware download failed: HTTP {status}',
+            'firmware.error.sizeMismatch': 'Repository firmware size verification failed',
+            'firmware.error.shaMismatch': 'Repository firmware SHA-256 verification failed',
+            'keycodes.title': 'HID Keycode List 📚',
+            'keycodes.letters': 'Letters',
+            'keycodes.numbersSymbols': 'Numbers & Symbols (Top Row)',
+            'keycodes.functionKeys': 'Function Keys',
+            'keycodes.controlNavigation': 'Control & Navigation',
+            'keycodes.modifierKeys': 'Modifier Keys',
+            'keycodes.numpad': 'Numpad',
+            'keycodes.mediaKeys': 'Media Keys',
+            'alert.noDevice': 'No device was selected.',
+            'alert.incompatibleDevice': 'The selected device has no compatible PGEKI HID interface.',
+            'alert.connectFailed': 'Could not connect to the device.',
+            'alert.fixedIoKeys': 'Keys are fixed in IO mode and cannot be reset.',
+            'alert.deviceNotConnected': 'Connect the device first.',
+            'alert.writingProfile': 'Writing configuration… Please wait.',
+            'alert.unsupportedDevice': 'The connected device model is not supported.',
+            'alert.modeRestart': 'Configuration written. The device will switch USB modes and restart. Reconnect after it appears again.',
+            'alert.profileWritten': 'Configuration slot {profile} was written successfully! 🎉',
+            'alert.profileWriteFailed': 'Could not write the configuration.\nTry restarting the browser.',
+            'alert.profileEmpty': 'Configuration slot {profile} is empty and cannot be saved.',
+            'alert.profileLoaded': 'Configuration loaded into slot {profile}.',
+            'alert.invalidProfileFile': 'This file format is invalid. Choose a single-profile configuration file.',
+            'alert.invalidJson': 'This is not a valid JSON configuration file.',
+            'alert.fileReadFailed': 'Could not read the file.',
+            'alert.readingConfig': 'Reading configuration… Please wait.',
+            'confirm.resetLights': 'Reset all lights in the current configuration?\nThis is a local change and takes effect after writing it to the controller.',
+            'confirm.resetKeys': 'Reset all keys in the current configuration?\nThis is a local change and takes effect after writing it to the controller.',
+            'confirm.resetAll': 'Reset the current configuration?\nThis is a local change and takes effect after writing it to the controller.',
+            'error.sensorProtocol': 'The sensor telemetry protocol is incompatible',
+            'error.deviceDisconnected': 'The device was disconnected',
+        }),
+    });
+
+    function resolveInitialLanguage() {
+        const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+        if (Object.prototype.hasOwnProperty.call(TRANSLATIONS, savedLanguage)) {
+            return savedLanguage;
+        }
+        const browserLanguages = navigator.languages && navigator.languages.length
+            ? navigator.languages
+            : [navigator.language || 'zh-CN'];
+        return browserLanguages.some(language => /^zh(?:-|$)/i.test(language)) ? 'zh-CN' : 'en';
+    }
+
+    let currentLanguage = resolveInitialLanguage();
+
+    function translate(key, parameters = {}) {
+        const languageTable = TRANSLATIONS[currentLanguage] || TRANSLATIONS['zh-CN'];
+        const template = languageTable[key] ?? TRANSLATIONS['zh-CN'][key] ?? key;
+        return template.replace(/\{([A-Za-z0-9_]+)\}/g, (match, parameter) => {
+            if (!Object.prototype.hasOwnProperty.call(parameters, parameter)) return match;
+            const value = parameters[parameter];
+            return typeof value === 'number' ? value.toLocaleString(currentLanguage) : String(value);
+        });
+    }
+
+    function setLocalizedText(element, key, parameters = {}) {
+        element.dataset.i18nDynamicKey = key;
+        element.dataset.i18nDynamicParameters = JSON.stringify(parameters);
+        element.textContent = translate(key, parameters);
+    }
+
+    function setPlainText(element, text) {
+        element.removeAttribute('data-i18n');
+        delete element.dataset.i18nDynamicKey;
+        delete element.dataset.i18nDynamicParameters;
+        element.textContent = text;
+    }
+
+    function setLocalizedAriaLabel(element, key, parameters = {}) {
+        element.dataset.i18nDynamicAriaKey = key;
+        element.dataset.i18nDynamicAriaParameters = JSON.stringify(parameters);
+        element.setAttribute('aria-label', translate(key, parameters));
+    }
+
+    function parseTranslationParameters(value) {
+        if (!value) return {};
+        try {
+            return JSON.parse(value);
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function applyTranslations() {
+        document.documentElement.lang = currentLanguage;
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            element.textContent = translate(element.dataset.i18n);
+        });
+        document.querySelectorAll('[data-i18n-title]').forEach(element => {
+            element.title = translate(element.dataset.i18nTitle);
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+            element.placeholder = translate(element.dataset.i18nPlaceholder);
+        });
+        document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
+            element.setAttribute('aria-label', translate(element.dataset.i18nAriaLabel));
+        });
+        document.querySelectorAll('[data-i18n-dynamic-key]').forEach(element => {
+            element.textContent = translate(element.dataset.i18nDynamicKey,
+                parseTranslationParameters(element.dataset.i18nDynamicParameters));
+        });
+        document.querySelectorAll('[data-i18n-dynamic-aria-key]').forEach(element => {
+            element.setAttribute('aria-label', translate(element.dataset.i18nDynamicAriaKey,
+                parseTranslationParameters(element.dataset.i18nDynamicAriaParameters)));
+        });
+    }
+
+    function setLanguage(language, persist = true) {
+        currentLanguage = Object.prototype.hasOwnProperty.call(TRANSLATIONS, language)
+            ? language
+            : 'zh-CN';
+        if (persist) localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+        if (languageSelect) languageSelect.value = currentLanguage;
+        applyTranslations();
+        if (firmwareCatalogLoadPromise || firmwareCatalogEntries.length) {
+            updateFirmwareReleaseInfo();
+        }
+    }
+
     // --- DOM Elements ---
+    const languageSelect = document.getElementById('language-select');
     const themeSwitch = document.getElementById('theme-checkbox');
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -331,7 +721,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         colorInput.value = config.color || '#ffffff';
         keyCodeInput.value = config.keyCode ? `0x${config.keyCode.toString(16).padStart(2, '0')}` : '';
-        currentKeyDisplay.textContent = config.keyDisplay || '无';
+        if (config.keyDisplay) {
+            setPlainText(currentKeyDisplay, config.keyDisplay);
+        } else {
+            setLocalizedText(currentKeyDisplay, 'common.none');
+        }
 
         isManualMode = false;
         recordModeDiv.style.display = 'flex';
@@ -410,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
             data.getUint8(payloadOffset) !== SENSOR_TELEMETRY_MAGIC[0] ||
             data.getUint8(payloadOffset + 1) !== SENSOR_TELEMETRY_MAGIC[1] ||
             data.getUint8(payloadOffset + 2) !== SENSOR_TELEMETRY_PROTOCOL_VERSION) {
-            throw new Error('传感遥测协议不兼容');
+            throw new Error(translate('error.sensorProtocol'));
         }
         const flags = data.getUint8(payloadOffset + 3);
         const versionComponents = data.byteLength >= payloadOffset + 63 ? [
@@ -434,12 +828,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderFirmwareVersion(version) {
-        const text = version ? `固件 v${version}` : '固件 v--';
-        if (firmwareVersion.textContent !== text) firmwareVersion.textContent = text;
+        setLocalizedText(firmwareVersion, 'header.firmwareVersion', {
+            version: version || '--',
+        });
     }
 
     function formatSensorValue(value) {
-        return Number(value).toLocaleString('zh-CN');
+        return Number(value).toLocaleString(currentLanguage);
     }
 
     function formatSensitivity(value) {
@@ -447,9 +842,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return numericValue > 0 ? `+${numericValue}` : `${numericValue}`;
     }
 
-    function setSensitivityStatus(sideName, text, state = '') {
+    function setSensitivityStatus(sideName, key, state = '', parameters = {}) {
         const status = sensorCardElements[sideName].sensitivityStatus;
-        status.textContent = text;
+        if (key) {
+            setLocalizedText(status, key, parameters);
+        } else {
+            setPlainText(status, '');
+        }
         status.classList.remove('saving', 'saved', 'error');
         if (state) status.classList.add(state);
     }
@@ -483,7 +882,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.sensitivity.textContent =
                     formatSensitivity(latestSensorSensitivity[sideName]);
             }
-            setSensitivityStatus(sideName, '控制器未确认，请重试', 'error');
+            setSensitivityStatus(sideName, 'sensor.notConfirmed', 'error');
             refreshSensitivityControls();
         }, SENSOR_SENSITIVITY_CONFIRM_TIMEOUT_MS);
     }
@@ -510,15 +909,15 @@ document.addEventListener('DOMContentLoaded', () => {
         report[5] = right & 0xff;
 
         sensorSensitivityWriteInProgress = true;
-        setSensitivityStatus(sideName, '正在保存…', 'saving');
+        setSensitivityStatus(sideName, 'sensor.saving', 'saving');
         refreshSensitivityControls();
         try {
             await hidDevice.sendReport(deviceDefinition.outputReportId, report);
             waitForSensitivityConfirmation(sideName, requested);
-            setSensitivityStatus(sideName, '等待控制器确认…', 'saving');
+            setSensitivityStatus(sideName, 'sensor.waitingConfirmation', 'saving');
         } catch (error) {
             pendingSensorSensitivity[sideName] = null;
-            setSensitivityStatus(sideName, '写入失败，请重试', 'error');
+            setSensitivityStatus(sideName, 'sensor.writeFailed', 'error');
             const previous = latestSensorSensitivity[sideName];
             if (previous !== null) {
                 sensorCardElements[sideName].sensitivityInput.value = previous;
@@ -537,7 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pendingSensorSensitivity[sideName] === telemetry.sensitivity) {
             pendingSensorSensitivity[sideName] = null;
             clearSensitivityConfirmation(sideName);
-            setSensitivityStatus(sideName, '已同步到控制器', 'saved');
+            setSensitivityStatus(sideName, 'sensor.syncedController', 'saved');
         }
         if (document.activeElement !== elements.sensitivityInput &&
             pendingSensorSensitivity[sideName] === null) {
@@ -546,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formatSensitivity(telemetry.sensitivity);
             if (!elements.sensitivityStatus.classList.contains('saved') &&
                 !elements.sensitivityStatus.classList.contains('error')) {
-                setSensitivityStatus(sideName, '已同步', 'saved');
+                setSensitivityStatus(sideName, 'sensor.synced', 'saved');
             }
         }
         const history = sensorHistory[sideName];
@@ -585,19 +984,24 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.releaseLine.setAttribute('y1', releaseY);
         elements.releaseLine.setAttribute('y2', releaseY);
 
-        elements.signal.textContent = `信号 ${formatSensorValue(telemetry.signal)}`;
-        elements.pressThreshold.textContent =
-            `触发 ${formatSensorValue(telemetry.pressThreshold)}`;
-        elements.releaseThreshold.textContent =
-            `释放 ${formatSensorValue(telemetry.releaseThreshold)}`;
+        setLocalizedText(elements.signal, 'sensor.signal', { value: telemetry.signal });
+        setLocalizedText(elements.pressThreshold, 'sensor.press', {
+            value: telemetry.pressThreshold,
+        });
+        setLocalizedText(elements.releaseThreshold, 'sensor.release', {
+            value: telemetry.releaseThreshold,
+        });
         elements.raw.textContent = formatSensorValue(telemetry.raw);
         elements.filtered.textContent = formatSensorValue(telemetry.filtered);
         elements.baseline.textContent = formatSensorValue(telemetry.baseline);
         elements.card.classList.toggle('pressed', telemetry.pressed);
-        elements.chart.setAttribute('aria-label',
-            `${sideName === 'left' ? '左' : '右'}侧键信号 ${telemetry.signal}，` +
-            `触发阈值 ${telemetry.pressThreshold}，释放阈值 ${telemetry.releaseThreshold}，` +
-            `灵敏度 ${telemetry.sensitivity}`);
+        setLocalizedAriaLabel(elements.chart,
+            sideName === 'left' ? 'sensor.chartStatusLeft' : 'sensor.chartStatusRight', {
+            signal: telemetry.signal,
+            press: telemetry.pressThreshold,
+            release: telemetry.releaseThreshold,
+            sensitivity: telemetry.sensitivity,
+        });
         refreshSensitivityControls();
     }
 
@@ -611,13 +1015,13 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.signalLine.setAttribute('d', '');
             elements.signalArea.setAttribute('d', '');
             elements.card.classList.remove('pressed');
-            elements.signal.textContent = '信号 --';
-            elements.pressThreshold.textContent = '触发 --';
-            elements.releaseThreshold.textContent = '释放 --';
+            setLocalizedText(elements.signal, 'sensor.signalEmpty');
+            setLocalizedText(elements.pressThreshold, 'sensor.pressEmpty');
+            setLocalizedText(elements.releaseThreshold, 'sensor.releaseEmpty');
             elements.sensitivity.textContent = '--';
             elements.sensitivityInput.value = 0;
             elements.sensitivityInput.disabled = true;
-            setSensitivityStatus(sideName, '等待控制器');
+            setSensitivityStatus(sideName, 'sensor.waiting');
             elements.raw.textContent = '--';
             elements.filtered.textContent = '--';
             elements.baseline.textContent = '--';
@@ -652,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!deviceDefinition || typeof hidDevice.receiveFeatureReport !== 'function') {
             sensorTelemetrySupported = false;
             for (const sideName of ['left', 'right']) {
-                setSensitivityStatus(sideName, '当前固件不支持调节', 'error');
+                setSensitivityStatus(sideName, 'sensor.unsupported', 'error');
             }
             refreshSensitivityControls();
             return;
@@ -673,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (generation !== sensorTelemetryGeneration) return;
             sensorTelemetrySupported = false;
             for (const sideName of ['left', 'right']) {
-                setSensitivityStatus(sideName, '当前固件不支持调节', 'error');
+                setSensitivityStatus(sideName, 'sensor.unsupported', 'error');
             }
             refreshSensitivityControls();
         }
@@ -699,14 +1103,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }) => ({ vendorId, productId, usagePage, usage }));
             const devices = await navigator.hid.requestDevice({ filters });
             if (devices.length === 0) {
-                showCustomAlert('喵喵喵? 没有找到设备哦~');
+                showCustomAlert(translate('alert.noDevice'));
                 return;
             }
 
             const selectedDevice = devices.find(device => findDeviceDefinition(device));
             const deviceDefinition = selectedDevice ? findDeviceDefinition(selectedDevice) : null;
             if (!selectedDevice || !deviceDefinition) {
-                showCustomAlert('选中的设备没有兼容的PGEKI HID接口。');
+                showCustomAlert(translate('alert.incompatibleDevice'));
                 return;
             }
 
@@ -731,7 +1135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Listen for the device to be disconnected
             navigator.hid.addEventListener('disconnect', (e) => {
                 if (e.device === hidDevice) {
-                    cancelOtaWaiter(new Error('设备已断开连接'));
+                    cancelOtaWaiter(new Error(translate('error.deviceDisconnected')));
                     stopSensorTelemetry();
                     //console.log('设备已断开连接喵！');
                     hidDevice = null;
@@ -744,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             //console.error('连接HID设备时出错了喵:', error);
-            showCustomAlert('连接失败了喵');
+            showCustomAlert(translate('alert.connectFailed'));
         }
     }
 
@@ -766,10 +1170,10 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function setConnectButtonState(isConnected) {
         if (isConnected) {
-            connectBtn.textContent = '点我写入配置 ✅';
+            setLocalizedText(connectBtn, 'header.write');
             connectBtn.style.backgroundColor = '#27ae60'; // Green
         } else {
-            connectBtn.textContent = '点我连接设备喵';
+            setLocalizedText(connectBtn, 'header.connect');
             connectBtn.style.backgroundColor = ''; // Revert to default CSS color
         }
     }
@@ -800,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     config.keyCode = parsedCode;
                     config.keyDisplay = keyCodeToDisplayMap[parsedCode] || `0x${parsedCode.toString(16).padStart(2, '0').toUpperCase()}`;
                 } else {
-                    showCustomAlert('请输入一个有效的键码 (0-255 或 0x00-0xFF) 哦~ ( ´•_•。)');
+                    showCustomAlert(translate('keyConfig.invalidKeycode'));
                     return; // Don't save/close modal
                 }
             } else {
@@ -868,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const waiter = otaAckWaiter;
             otaAckWaiter = null;
             clearTimeout(waiter.timeoutId);
-            const error = new Error('网页与设备的OTA协议版本不兼容');
+            const error = new Error(translate('firmware.error.protocol'));
             error.retryable = false;
             waiter.reject(error);
             return;
@@ -892,18 +1296,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function webOtaStatusMessage(status) {
         const messages = {
-            0x80: '设备当前不能开始该操作',
-            0x81: '固件大小或数据长度无效',
-            0x82: `数据包顺序错误，设备期望 ${status.sequence}`,
-            0x83: '设备无法初始化OTA分区',
-            0x84: '设备写入Flash失败',
-            0x85: '固件镜像校验失败',
-            0x86: '设备无法设置启动分区',
-            0x87: '传输超时，设备已取消更新',
-            0x88: '设备正忙，请重试',
-            0x89: '网页与设备的OTA协议版本不兼容',
+            0x80: translate('firmware.error.unavailable'),
+            0x81: translate('firmware.error.invalidLength'),
+            0x82: translate('firmware.error.sequence', { sequence: status.sequence }),
+            0x83: translate('firmware.error.partition'),
+            0x84: translate('firmware.error.flash'),
+            0x85: translate('firmware.error.image'),
+            0x86: translate('firmware.error.bootPartition'),
+            0x87: translate('firmware.error.timeout'),
+            0x88: translate('firmware.error.busy'),
+            0x89: translate('firmware.error.protocol'),
         };
-        return messages[status.status] || `设备返回错误 0x${status.status.toString(16).padStart(2, '0')}`;
+        return messages[status.status] || translate('firmware.error.deviceCode', {
+            code: status.status.toString(16).padStart(2, '0'),
+        });
     }
 
     function cancelOtaWaiter(error) {
@@ -917,7 +1323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function exchangeWebOtaReport(report, command, sequence, timeoutMs, retryCount = 2) {
         const deviceDefinition = hidDevice ? findDeviceDefinition(hidDevice) : null;
         if (!hidDevice || !hidDevice.opened || !deviceDefinition) {
-            throw new Error('设备未连接');
+            throw new Error(translate('firmware.error.disconnected'));
         }
 
         let lastError = null;
@@ -927,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (otaAckWaiter && otaAckWaiter.timeoutId === timeoutId) {
                         otaAckWaiter = null;
                     }
-                    const error = new Error('等待设备响应超时');
+                    const error = new Error(translate('firmware.error.responseTimeout'));
                     error.retryable = true;
                     reject(error);
                 }, timeoutMs);
@@ -945,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     error.retryable === false || attempt === retryCount) break;
             }
         }
-        throw lastError || new Error('设备通信失败');
+        throw lastError || new Error(translate('firmware.error.communication'));
     }
 
     function setUint32LittleEndian(target, offset, value) {
@@ -985,12 +1391,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function resolveFirmwareAssetUrl(path) {
         if (typeof path !== 'string' || !path || path.includes('\\') ||
             path.startsWith('/') || path.split('/').includes('..')) {
-            throw new Error('固件目录包含无效路径');
+            throw new Error(translate('firmware.error.invalidPath'));
         }
         const baseUrl = getFirmwareAssetBaseUrl();
         const assetUrl = new URL(path, baseUrl);
         if (!assetUrl.href.startsWith(baseUrl.href)) {
-            throw new Error('固件目录包含越界路径');
+            throw new Error(translate('firmware.error.outsidePath'));
         }
         return assetUrl.href;
     }
@@ -1017,31 +1423,51 @@ document.addEventListener('DOMContentLoaded', () => {
             versionParts,
             name: typeof entry.name === 'string' && entry.name ? entry.name : 'PGEKI2',
             notes: typeof entry.notes === 'string' ? entry.notes : '',
+            notesI18n: entry.notesI18n && typeof entry.notesI18n === 'object'
+                ? entry.notesI18n
+                : null,
             size: entry.size,
             sha256: entry.sha256.toLowerCase(),
             url,
         };
     }
 
+    function getFirmwareReleaseNotes(release) {
+        if (!release) return '';
+        if (release.notesI18n) {
+            const exact = release.notesI18n[currentLanguage];
+            if (typeof exact === 'string') return exact;
+            const fallback = currentLanguage === 'zh-CN'
+                ? release.notesI18n.zh
+                : release.notesI18n.en;
+            if (typeof fallback === 'string') return fallback;
+        }
+        return release.notes;
+    }
+
     function updateFirmwareReleaseInfo() {
         const release = firmwareCatalogEntries.find(
             entry => entry.version === firmwareReleaseSelect.value);
         if (!release) {
-            firmwareReleaseInfo.textContent = firmwareCatalogEntries.length
-                ? '请选择一个仓库固件版本，或上传本地 .bin 文件。'
-                : '仓库固件暂不可用，仍可选择本地 .bin 文件。';
+            setLocalizedText(firmwareReleaseInfo, firmwareCatalogEntries.length
+                ? 'firmware.chooseRepositoryOrLocal'
+                : 'firmware.repositoryUnavailable');
             return;
         }
-        const notes = release.notes ? ` · ${release.notes}` : '';
-        firmwareReleaseInfo.textContent =
-            `${release.name} v${release.version} · ${formatFirmwareSize(release.size)}${notes}`;
+        const releaseNotes = getFirmwareReleaseNotes(release);
+        const notes = releaseNotes ? ` · ${releaseNotes}` : '';
+        setPlainText(firmwareReleaseInfo,
+            `${release.name} v${release.version} · ${formatFirmwareSize(release.size)}${notes}`);
     }
 
     function renderFirmwareCatalog(entries) {
         firmwareCatalogEntries = entries;
         firmwareReleaseSelect.replaceChildren();
         if (!entries.length) {
-            firmwareReleaseSelect.append(new Option('没有可用的仓库固件', ''));
+            const emptyOption = new Option(
+                translate('firmware.noRepositoryFirmware'), '');
+            emptyOption.dataset.i18n = 'firmware.noRepositoryFirmware';
+            firmwareReleaseSelect.append(emptyOption);
             firmwareReleaseSelect.disabled = true;
             updateFirmwareReleaseInfo();
             return;
@@ -1055,7 +1481,9 @@ document.addEventListener('DOMContentLoaded', () => {
         firmwareReleaseSelect.value = hasLocalFile ? '' : entries[0].version;
         updateFirmwareReleaseInfo();
         if (!hasLocalFile) {
-            firmwareUpdateStatus.textContent = `已选择仓库固件 v${entries[0].version}。`;
+            setLocalizedText(firmwareUpdateStatus, 'firmware.selectedRepository', {
+                version: entries[0].version,
+            });
         }
     }
 
@@ -1069,7 +1497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const manifest = await response.json();
                 if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.firmware)) {
-                    throw new Error('固件目录格式不受支持');
+                    throw new Error(translate('firmware.error.catalogFormat'));
                 }
                 const entries = manifest.firmware
                     .map(validateFirmwareCatalogEntry)
@@ -1079,7 +1507,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderFirmwareCatalog(entries);
             } catch (error) {
                 renderFirmwareCatalog([]);
-                firmwareReleaseInfo.textContent = `读取仓库固件失败：${error.message}`;
+                setLocalizedText(firmwareReleaseInfo, 'firmware.catalogLoadFailed', {
+                    message: error.message,
+                });
                 firmwareCatalogLoadPromise = null;
             }
         })();
@@ -1088,14 +1518,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function validateFirmwareImage(firmware) {
         if (!firmware.length || firmware.length > WEB_OTA_MAXIMUM_IMAGE_SIZE) {
-            throw new Error('固件大小必须在1字节到2 MiB之间');
+            throw new Error(translate('firmware.error.imageSize'));
         }
-        if (firmware[0] !== 0xE9) throw new Error('文件不是有效的ESP应用固件');
+        if (firmware[0] !== 0xE9) throw new Error(translate('firmware.error.invalidImage'));
     }
 
     async function sha256Hex(bytes) {
         if (!window.crypto || !window.crypto.subtle) {
-            throw new Error('当前浏览器不支持仓库固件完整性校验');
+            throw new Error(translate('firmware.error.integrityUnsupported'));
         }
         const digest = await window.crypto.subtle.digest('SHA-256', bytes);
         return Array.from(new Uint8Array(digest), value =>
@@ -1105,8 +1535,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function readSelectedFirmware() {
         const localFile = firmwareFileInput.files[0];
         if (localFile) {
-            if (!/\.bin$/i.test(localFile.name)) throw new Error('本地固件必须是 .bin 文件');
-            firmwareUpdateStatus.textContent = `正在读取 ${localFile.name}…`;
+            if (!/\.bin$/i.test(localFile.name)) {
+                throw new Error(translate('firmware.error.localExtension'));
+            }
+            setLocalizedText(firmwareUpdateStatus, 'firmware.readingLocal', {
+                name: localFile.name,
+            });
             const firmware = new Uint8Array(await localFile.arrayBuffer());
             validateFirmwareImage(firmware);
             return firmware;
@@ -1114,16 +1548,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const release = firmwareCatalogEntries.find(
             entry => entry.version === firmwareReleaseSelect.value);
-        if (!release) throw new Error('请先选择仓库版本或本地固件文件');
-        firmwareUpdateStatus.textContent = `正在下载仓库固件 v${release.version}…`;
+        if (!release) throw new Error(translate('firmware.error.selectSource'));
+        setLocalizedText(firmwareUpdateStatus, 'firmware.downloading', {
+            version: release.version,
+        });
         const response = await fetch(release.url, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`下载固件失败：HTTP ${response.status}`);
+        if (!response.ok) throw new Error(translate('firmware.error.download', {
+            status: response.status,
+        }));
         const firmware = new Uint8Array(await response.arrayBuffer());
-        if (firmware.length !== release.size) throw new Error('仓库固件大小校验失败');
+        if (firmware.length !== release.size) {
+            throw new Error(translate('firmware.error.sizeMismatch'));
+        }
         validateFirmwareImage(firmware);
-        firmwareUpdateStatus.textContent = `正在校验仓库固件 v${release.version}…`;
+        setLocalizedText(firmwareUpdateStatus, 'firmware.verifying', {
+            version: release.version,
+        });
         if (await sha256Hex(firmware) !== release.sha256) {
-            throw new Error('仓库固件SHA-256校验失败');
+            throw new Error(translate('firmware.error.shaMismatch'));
         }
         return firmware;
     }
@@ -1151,7 +1593,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleFirmwareUpload() {
         if (!hidDevice || !hidDevice.opened) {
-            firmwareUpdateStatus.textContent = '请先点击右上角连接设备，再开始USB更新。';
+            setLocalizedText(firmwareUpdateStatus, 'firmware.connectFirst');
             return;
         }
         setOtaControlsBusy(true);
@@ -1162,7 +1604,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const beginReport = createWebOtaReport(WEB_OTA_COMMANDS.BEGIN);
             beginReport[3] = WEB_OTA_PROTOCOL_VERSION;
             setUint32LittleEndian(beginReport, 4, firmware.length);
-            firmwareUpdateStatus.textContent = '正在准备设备OTA分区…';
+            setLocalizedText(firmwareUpdateStatus, 'firmware.preparing');
             await exchangeWebOtaReport(beginReport, WEB_OTA_COMMANDS.BEGIN, 0, 10000);
             transferStarted = true;
 
@@ -1184,19 +1626,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (percent !== lastPercent) {
                     lastPercent = percent;
                     firmwareUpdateProgress.value = percent;
-                    firmwareUpdateStatus.textContent = `正在传输固件… ${percent}%`;
+                    setLocalizedText(firmwareUpdateStatus, 'firmware.transferring', {
+                        percent,
+                    });
                 }
             }
 
             const endReport = createWebOtaReport(WEB_OTA_COMMANDS.END);
-            firmwareUpdateStatus.textContent = '正在校验固件，请勿断电…';
+            setLocalizedText(firmwareUpdateStatus, 'firmware.finalVerifying');
             await exchangeWebOtaReport(endReport, WEB_OTA_COMMANDS.END, 0, 30000, 0);
             transferStarted = false;
             firmwareUpdateProgress.value = 100;
-            firmwareUpdateStatus.textContent = '更新成功，设备正在重启。';
+            setLocalizedText(firmwareUpdateStatus, 'firmware.success');
         } catch (error) {
             firmwareUpdateProgress.value = 0;
-            firmwareUpdateStatus.textContent = `更新失败：${error.message}`;
+            setLocalizedText(firmwareUpdateStatus, 'firmware.failed', {
+                message: error.message,
+            });
             if (transferStarted) await abortWebOta();
         } finally {
             setOtaControlsBusy(false);
@@ -1276,7 +1722,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * This is now a local-only operation.
      */
     async function handleResetLights() {
-        const confirmed = await showCustomConfirm('确定要重置当前配置文件的所有灯光吗？\n✨ 这个操作是本地的，需要写入手台才会生效哦~');
+        const confirmed = await showCustomConfirm(translate('confirm.resetLights'));
         if (!confirmed) {
             return;
         }
@@ -1298,10 +1744,10 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function handleResetKey() {
         if (currentProfile === 0) {
-            showCustomAlert('喵呜！IO模式下的按键是固定的，不能重置哦~ (づ｡◕‿‿◕｡)づ');
+            showCustomAlert(translate('alert.fixedIoKeys'));
             return;
         }
-        const confirmed = await showCustomConfirm('确定要重置当前配置文件的所有按键吗？\n⌨️ 这个操作是本地的，需要写入手台才会生效哦~');
+        const confirmed = await showCustomConfirm(translate('confirm.resetKeys'));
         if (!confirmed) {
             return;
         }
@@ -1319,7 +1765,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleResetAll() {
-        const confirmed = await showCustomConfirm('确定要重置当前配置文件吗？\n💥 这个操作是本地的，需要写入手台才会生效哦~');
+        const confirmed = await showCustomConfirm(translate('confirm.resetAll'));
         if (!confirmed) {
             return;
         }
@@ -1346,11 +1792,11 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function handleUploadProfile() {
         if (!hidDevice) {
-            showCustomAlert('设备还没连接呢~ 请先连接设备哦！(＞д＜)');
+            showCustomAlert(translate('alert.deviceNotConnected'));
             return;
         }
 
-        showCustomAlert('正在写入配置文件... 请稍候哦~ ( V.v)V'); // Show pending status
+        showCustomAlert(translate('alert.writingProfile')); // Show pending status
 
         // A short delay to allow the pending message to render before potential blocking operation
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -1359,7 +1805,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hidDevice.vendorId === vendorId && hidDevice.productId === productId
         );
         if (!deviceDefinition) {
-            showCustomAlert('当前连接的设备型号不受支持。');
+            showCustomAlert(translate('alert.unsupportedDevice'));
             return;
         }
 
@@ -1417,13 +1863,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 setSelectedUsbMode(selectedIoUsbMode);
             }
             if (targetUsbMode !== connectedUsbMode) {
-                showCustomAlert('配置已写入，设备将切换USB模式并重启。请等待设备重新出现后再次连接。');
+                showCustomAlert(translate('alert.modeRestart'));
             } else {
-                showCustomAlert(`配置文件 ${currentProfile + 1} 已成功写入！🎉`);
+                showCustomAlert(translate('alert.profileWritten', {
+                    profile: currentProfile + 1,
+                }));
             }
         } catch (error) {
             //console.error('配置文件写入失败了喵:', error);
-            showCustomAlert('配置文件写入失败了喵...〒▽〒\r\n重启浏览器试试~');
+            showCustomAlert(translate('alert.profileWriteFailed'));
         }
     }
 
@@ -1433,7 +1881,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleSaveToFile() {
         const currentProfileConfig = profiles[currentProfile];
         if (!currentProfileConfig || Object.keys(currentProfileConfig).length === 0) {
-            showCustomAlert(`配置文件 ${currentProfile + 1} 是空的，没什么可保存的哦~ (´｡• ᵕ •｡\`)`);
+            showCustomAlert(translate('alert.profileEmpty', {
+                profile: currentProfile + 1,
+            }));
             return;
         }
 
@@ -1490,22 +1940,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (currentProfile === 0) {
                         ioLightOverrideSwitch.checked = !!(profiles[0] && profiles[0].ioLightOverride);
                     }
-                    showCustomAlert(`配置已成功载入到配置文件 ${currentProfile + 1}！开心~ (ﾉ>ω<)ﾉ`);
+                    showCustomAlert(translate('alert.profileLoaded', {
+                        profile: currentProfile + 1,
+                    }));
                 } else {
-                    showCustomAlert('这个文件格式好像不对哦，请选择一个单个配置的文件~ ( ´•_•。)');
+                    showCustomAlert(translate('alert.invalidProfileFile'));
                 }
             } catch (error) {
                 //console.error('解析配置文件失败了喵:', error);
-                showCustomAlert('呜... 这不是一个有效的JSON配置文件呢... (｡•́︿•̀｡)');
+                showCustomAlert(translate('alert.invalidJson'));
             }
         };
 
         reader.onerror = () => {
-             showCustomAlert('读取文件时出错了喵... (｡•́︿•̀｡)');
+             showCustomAlert(translate('alert.fileReadFailed'));
         };
 
         reader.readAsText(file);
-        showCustomAlert('正在读取配置文件... 请稍候~ (ﾐⓛᆽⓛﾐ)'); // Show pending status
+        showCustomAlert(translate('alert.readingConfig')); // Show pending status
     }
 
     /**
@@ -1528,7 +1980,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.removeEventListener('keydown', keydownListener);
             keydownListener = null;
         }
-        recordKeyBtn.textContent = '开始录制 🔴';
+        setLocalizedText(recordKeyBtn, 'keyConfig.startRecording');
         recordKeyBtn.classList.remove('is-recording');
         isRecording = false;
     }
@@ -1540,7 +1992,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        recordKeyBtn.textContent = '请按键...点击取消';
+        setLocalizedText(recordKeyBtn, 'keyConfig.recording');
         recordKeyBtn.classList.add('is-recording');
         isRecording = true;
 
@@ -1554,11 +2006,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     keyCode: hidCode,
                     keyDisplay: event.key.length === 1 ? event.key.toUpperCase() : event.key,
                 };
-                currentKeyDisplay.textContent = newKeySelection.keyDisplay;
+                setPlainText(currentKeyDisplay, newKeySelection.keyDisplay);
                 //console.log(`录制到按键: ${newKeySelection.keyDisplay} (码: 0x${hidCode.toString(16)}) 喵~`);
             } else {
                 newKeySelection = null; // Invalidate selection if key is not mapped
-                currentKeyDisplay.textContent = '未映射 :(';
+                setLocalizedText(currentKeyDisplay, 'keyConfig.unmapped');
                  //console.log(`录制到未映射的按键: ${event.code} 喵~`);
             }
             
@@ -1642,15 +2094,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (firmwareReleaseSelect.value) firmwareFileInput.value = '';
         updateFirmwareReleaseInfo();
         if (firmwareReleaseSelect.value) {
-            firmwareUpdateStatus.textContent =
-                `已选择仓库固件 v${firmwareReleaseSelect.value}。`;
+            setLocalizedText(firmwareUpdateStatus, 'firmware.selectedRepository', {
+                version: firmwareReleaseSelect.value,
+            });
         }
     });
     firmwareFileInput.addEventListener('change', () => {
         if (!firmwareFileInput.files[0]) return;
         firmwareReleaseSelect.value = '';
         updateFirmwareReleaseInfo();
-        firmwareUpdateStatus.textContent = `已选择本地固件 ${firmwareFileInput.files[0].name}。`;
+        setLocalizedText(firmwareUpdateStatus, 'firmware.selectedLocal', {
+            name: firmwareFileInput.files[0].name,
+        });
     });
     ioLightOverrideSwitch.addEventListener('change', handleIoLightSwitchChange);
     usbModeSelect.addEventListener('change', () => setSelectedUsbMode(Number(usbModeSelect.value)));
@@ -1668,6 +2123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     recordKeyBtn.addEventListener('click', handleRecordKey);
     toggleInputModeBtn.addEventListener('click', handleToggleInputMode);
     themeSwitch.addEventListener('change', handleThemeSwitch);
+    languageSelect.addEventListener('change', () => setLanguage(languageSelect.value));
 
     // Keycode List Modal Listeners
     showKeycodeListBtn.addEventListener('click', () => {
@@ -1727,6 +2183,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initial Setup ---
     document.body.classList.add('sidebar-collapsed');
     applyInitialTheme();
+    setLanguage(currentLanguage, false);
+    renderFirmwareVersion(null);
+    setConnectButtonState(false);
     setSelectedUsbMode(Number(localStorage.getItem('pgeki-usb-mode')));
     switchProfile(0); // Activate the first profile by default
 });
