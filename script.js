@@ -57,6 +57,35 @@ document.addEventListener('DOMContentLoaded', () => {
             'sensor.syncedController': '已同步到控制器',
             'sensor.synced': '已同步',
             'sensor.unsupported': '当前固件不支持调节',
+            'lever.waiting': '摇杆：等待控制器',
+            'lever.position': '摇杆位置 {value}%',
+            'action.title': '动作录制与回放',
+            'action.slot': '槽位',
+            'action.loop': '循环回放',
+            'action.record': '● 录制',
+            'action.play': '▶ 回放',
+            'action.stop': '■ 停止',
+            'action.delete': '删除',
+            'action.disconnected': '连接控制器后可用',
+            'action.unsupported': '需要固件 1.1.0 或更高版本',
+            'action.slotStored': '槽位 {slot} · 已保存',
+            'action.slotEmpty': '槽位 {slot} · 空',
+            'action.idleEmpty': '槽位 {slot} 尚未录制',
+            'action.recording': '正在录制槽位 {slot}…',
+            'action.saving': '正在保存到 Flash…',
+            'action.loading': '正在从 Flash 载入…',
+            'action.playing': '正在回放槽位 {slot}…',
+            'action.communicationFailed': '发送失败，请检查控制器连接',
+            'action.error.notReady': '录制组件尚未就绪',
+            'action.error.protocol': '网页与录制协议不兼容',
+            'action.error.invalidSlot': '录制槽位无效',
+            'action.error.busy': '录制组件正忙',
+            'action.error.noData': '该槽位没有可回放的数据',
+            'action.error.noMemory': '控制器内存不足',
+            'action.error.overflow': '录制过长或变化过密，已停止',
+            'action.error.storage': 'Flash 保存失败',
+            'action.error.corrupt': '录制数据校验失败',
+            'action.error.unknown': '录制组件返回未知错误',
             'keyConfig.title': '按键配置',
             'keyConfig.color': '颜色:',
             'keyConfig.key': '键位:',
@@ -146,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'confirm.resetLights': '确定要重置当前配置文件的所有灯光吗？\n✨ 这个操作是本地的，需要写入手台才会生效哦~',
             'confirm.resetKeys': '确定要重置当前配置文件的所有按键吗？\n⌨️ 这个操作是本地的，需要写入手台才会生效哦~',
             'confirm.resetAll': '确定要重置当前配置文件吗？\n💥 这个操作是本地的，需要写入手台才会生效哦~',
+            'confirm.deleteAction': '确定删除动作录制槽位 {slot} 吗？',
             'error.sensorProtocol': '传感遥测协议不兼容',
             'error.deviceDisconnected': '设备已断开连接',
         }),
@@ -205,6 +235,35 @@ document.addEventListener('DOMContentLoaded', () => {
             'sensor.syncedController': 'Synced to controller',
             'sensor.synced': 'Synced',
             'sensor.unsupported': 'This firmware does not support adjustment',
+            'lever.waiting': 'Lever: waiting for controller',
+            'lever.position': 'Lever position {value}%',
+            'action.title': 'Action recording and playback',
+            'action.slot': 'Slot',
+            'action.loop': 'Loop playback',
+            'action.record': '● Record',
+            'action.play': '▶ Play',
+            'action.stop': '■ Stop',
+            'action.delete': 'Delete',
+            'action.disconnected': 'Connect a controller to use this feature',
+            'action.unsupported': 'Firmware 1.1.0 or later is required',
+            'action.slotStored': 'Slot {slot} · saved',
+            'action.slotEmpty': 'Slot {slot} · empty',
+            'action.idleEmpty': 'Slot {slot} has not been recorded',
+            'action.recording': 'Recording slot {slot}…',
+            'action.saving': 'Saving to flash…',
+            'action.loading': 'Loading from flash…',
+            'action.playing': 'Playing slot {slot}…',
+            'action.communicationFailed': 'Command failed. Check the controller connection.',
+            'action.error.notReady': 'The recorder is not ready',
+            'action.error.protocol': 'The web app and recorder protocols are incompatible',
+            'action.error.invalidSlot': 'The recording slot is invalid',
+            'action.error.busy': 'The recorder is busy',
+            'action.error.noData': 'This slot has no recording to play',
+            'action.error.noMemory': 'The controller does not have enough memory',
+            'action.error.overflow': 'Recording was too long or changed too quickly and was stopped',
+            'action.error.storage': 'Could not save the recording to flash',
+            'action.error.corrupt': 'The recording failed its integrity check',
+            'action.error.unknown': 'The recorder returned an unknown error',
             'keyConfig.title': 'Key configuration',
             'keyConfig.color': 'Color:',
             'keyConfig.key': 'Key:',
@@ -294,6 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'confirm.resetLights': 'Reset all lights in the current configuration?\nThis is a local change and takes effect after writing it to the controller.',
             'confirm.resetKeys': 'Reset all keys in the current configuration?\nThis is a local change and takes effect after writing it to the controller.',
             'confirm.resetAll': 'Reset the current configuration?\nThis is a local change and takes effect after writing it to the controller.',
+            'confirm.deleteAction': 'Delete action recording slot {slot}?',
             'error.sensorProtocol': 'The sensor telemetry protocol is incompatible',
             'error.deviceDisconnected': 'The device was disconnected',
         }),
@@ -417,6 +477,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const deviceModeControlsHeader = document.getElementById('device-mode-controls-header');
     const deviceModeHint = document.getElementById('device-mode-hint');
     const usbModeSelect = document.getElementById('usb-mode-select');
+    const leverMonitor = document.getElementById('lever-monitor');
+    const leverPositionFill = document.getElementById('lever-position-fill');
+    const leverPositionThumb = document.getElementById('lever-position-thumb');
+    const actionSlotSelect = document.getElementById('action-slot-select');
+    const actionLoopSwitch = document.getElementById('action-loop-switch');
+    const actionRecordBtn = document.getElementById('action-record-btn');
+    const actionPlayBtn = document.getElementById('action-play-btn');
+    const actionStopBtn = document.getElementById('action-stop-btn');
+    const actionDeleteBtn = document.getElementById('action-delete-btn');
+    const actionStatusText = document.getElementById('action-status');
     const connectBtn = document.getElementById('connect-btn');
     const firmwareVersion = document.getElementById('firmware-version');
     const mainContent = document.querySelector('.main-content');
@@ -470,6 +540,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEB_SENSITIVITY_COMMAND = 0x11;
     const WEB_SENSITIVITY_MAGIC = Object.freeze([0x53, 0x54]);
     const WEB_SENSITIVITY_PROTOCOL_VERSION = 1;
+    const WEB_ACTION_COMMAND = 0x12;
+    const WEB_ACTION_MAGIC = Object.freeze([0x41, 0x43]);
+    const WEB_ACTION_PROTOCOL_VERSION = 1;
+    const WEB_ACTION_TELEMETRY_MAGIC = 0xac;
+    const WEB_ACTION_MINIMUM_FIRMWARE_VERSION = Object.freeze([1, 1, 0]);
+    const WEB_ACTION_SLOT_COUNT = 8;
+    const WEB_ACTION_OPERATIONS = Object.freeze({
+        START_RECORDING: 1,
+        STOP_RECORDING: 2,
+        START_PLAYBACK: 3,
+        STOP_PLAYBACK: 4,
+        DELETE: 5,
+    });
+    const WEB_ACTION_STATES = Object.freeze({
+        IDLE: 0,
+        RECORDING: 1,
+        SAVING: 2,
+        LOADING: 3,
+        PLAYING: 4,
+        ERROR: 5,
+    });
+    const WEB_ACTION_FLAG_LOOP = 1;
     const SENSOR_SENSITIVITY_MINIMUM = -30;
     const SENSOR_SENSITIVITY_MAXIMUM = 30;
     const SENSOR_SENSITIVITY_CONFIRM_TIMEOUT_MS = 1500;
@@ -534,6 +626,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let sensorTelemetryGeneration = 0;
     let sensorTelemetrySupported = false;
     let sensorSensitivityWriteInProgress = false;
+    let actionTelemetrySupported = false;
+    let currentActionStatus = null;
+    let actionCommandInProgress = false;
+    let actionCommandErrorKey = null;
     const sensorHistory = { left: [], right: [] };
     const latestSensorSensitivity = { left: null, right: null };
     const pendingSensorSensitivity = { left: null, right: null };
@@ -829,6 +925,8 @@ document.addEventListener('DOMContentLoaded', () => {
             data.getUint8(payloadOffset + 61),
             data.getUint8(payloadOffset + 62),
         ] : null;
+        const firmwareVersion = versionComponents && versionComponents.some(Boolean) ?
+            versionComponents.join('.') : null;
         return {
             left: readTelemetrySide(data, payloadOffset + 8,
                 data.getUint8(payloadOffset + 4),
@@ -838,9 +936,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 data.getUint8(payloadOffset + 5),
                 data.getInt8(payloadOffset + 7),
                 Boolean(flags & 0x04), Boolean(flags & 0x08)),
-            sequence: data.getUint32(payloadOffset + 56, true),
-            firmwareVersion: versionComponents && versionComponents.some(Boolean) ?
-                versionComponents.join('.') : null,
+            action: decodeActionTelemetry(data, payloadOffset + 56,
+                firmwareVersion),
+            firmwareVersion,
+        };
+    }
+
+    function decodeActionTelemetry(data, offset, firmwareVersion) {
+        const version = firmwareVersion ? parseFirmwareVersion(firmwareVersion) : null;
+        if (!version || compareFirmwareVersions(
+            version, WEB_ACTION_MINIMUM_FIRMWARE_VERSION) < 0 ||
+            data.byteLength < offset + 4 ||
+            data.getUint8(offset) !== WEB_ACTION_TELEMETRY_MAGIC) {
+            return null;
+        }
+        const packedState = data.getUint8(offset + 1);
+        const state = packedState & 0x0f;
+        const lastError = packedState >>> 4;
+        const activeSlot = data.getUint8(offset + 2);
+        if (state > WEB_ACTION_STATES.ERROR || lastError > 9 ||
+            (activeSlot !== 0xff && activeSlot >= WEB_ACTION_SLOT_COUNT)) {
+            return null;
+        }
+        return {
+            state,
+            lastError,
+            activeSlot,
+            validSlotMask: data.getUint8(offset + 3),
         };
     }
 
@@ -848,6 +970,181 @@ document.addEventListener('DOMContentLoaded', () => {
         setLocalizedText(firmwareVersion, 'header.firmwareVersion', {
             version: version || '--',
         });
+    }
+
+    function selectedActionSlot() {
+        const slot = Number(actionSlotSelect.value);
+        return Number.isInteger(slot) && slot >= 0 &&
+            slot < WEB_ACTION_SLOT_COUNT ? slot : 0;
+    }
+
+    function renderActionSlotOptions(validSlotMask = 0) {
+        const selected = selectedActionSlot();
+        if (actionSlotSelect.options.length !== WEB_ACTION_SLOT_COUNT) {
+            actionSlotSelect.replaceChildren();
+            for (let slot = 0; slot < WEB_ACTION_SLOT_COUNT; slot++) {
+                actionSlotSelect.append(new Option('', slot.toString()));
+            }
+        }
+        for (let slot = 0; slot < WEB_ACTION_SLOT_COUNT; slot++) {
+            const option = actionSlotSelect.options[slot];
+            setLocalizedText(option,
+                validSlotMask & (1 << slot)
+                    ? 'action.slotStored'
+                    : 'action.slotEmpty',
+                { slot: slot + 1 });
+        }
+        actionSlotSelect.value = selected.toString();
+    }
+
+    function actionErrorTranslation(error) {
+        const keys = {
+            1: 'action.error.notReady',
+            2: 'action.error.protocol',
+            3: 'action.error.invalidSlot',
+            4: 'action.error.busy',
+            5: 'action.error.noData',
+            6: 'action.error.noMemory',
+            7: 'action.error.overflow',
+            8: 'action.error.storage',
+            9: 'action.error.corrupt',
+        };
+        return keys[error] || 'action.error.unknown';
+    }
+
+    function setActionStatusText(key, state = '', parameters = {}) {
+        setLocalizedText(actionStatusText, key, parameters);
+        actionStatusText.classList.remove('is-active', 'is-error');
+        if (state) actionStatusText.classList.add(state);
+    }
+
+    function refreshActionControls() {
+        const available = Boolean(hidDevice && hidDevice.opened) &&
+            actionTelemetrySupported && currentActionStatus && !otaUploadActive;
+        const state = currentActionStatus ? currentActionStatus.state : null;
+        const idle = state === WEB_ACTION_STATES.IDLE ||
+            state === WEB_ACTION_STATES.ERROR;
+        const validSlot = currentActionStatus &&
+            Boolean(currentActionStatus.validSlotMask &
+                (1 << selectedActionSlot()));
+        const locked = !available || actionCommandInProgress;
+        actionSlotSelect.disabled = locked || !idle;
+        actionLoopSwitch.disabled = locked || !idle;
+        actionRecordBtn.disabled = locked || !idle;
+        actionPlayBtn.disabled = locked || !idle || !validSlot;
+        actionDeleteBtn.disabled = locked || !idle || !validSlot;
+        actionStopBtn.disabled = locked ||
+            (state !== WEB_ACTION_STATES.RECORDING &&
+             state !== WEB_ACTION_STATES.PLAYING);
+    }
+
+    function renderActionStatus(status) {
+        currentActionStatus = status;
+        actionTelemetrySupported = Boolean(status);
+        renderActionSlotOptions(status ? status.validSlotMask : 0);
+
+        if (actionCommandErrorKey) {
+            setActionStatusText(actionCommandErrorKey, 'is-error');
+        } else if (!hidDevice || !hidDevice.opened) {
+            setActionStatusText('action.disconnected');
+        } else if (!status) {
+            setActionStatusText('action.unsupported');
+        } else if (status.lastError) {
+            setActionStatusText(actionErrorTranslation(status.lastError),
+                'is-error');
+        } else {
+            const activeSlot = status.activeSlot < WEB_ACTION_SLOT_COUNT
+                ? status.activeSlot : selectedActionSlot();
+            switch (status.state) {
+                case WEB_ACTION_STATES.RECORDING:
+                    setActionStatusText('action.recording', 'is-active', {
+                        slot: activeSlot + 1,
+                    });
+                    break;
+                case WEB_ACTION_STATES.SAVING:
+                    setActionStatusText('action.saving', 'is-active');
+                    break;
+                case WEB_ACTION_STATES.LOADING:
+                    setActionStatusText('action.loading', 'is-active');
+                    break;
+                case WEB_ACTION_STATES.PLAYING:
+                    setActionStatusText('action.playing', 'is-active', {
+                        slot: activeSlot + 1,
+                    });
+                    break;
+                default: {
+                    const slot = selectedActionSlot();
+                    if (status.validSlotMask & (1 << slot)) {
+                        setPlainText(actionStatusText, '');
+                        actionStatusText.classList.remove(
+                            'is-active', 'is-error');
+                    } else {
+                        setActionStatusText('action.idleEmpty', '', {
+                            slot: slot + 1,
+                        });
+                    }
+                    break;
+                }
+            }
+        }
+        refreshActionControls();
+    }
+
+    function resetActionControls() {
+        actionCommandInProgress = false;
+        actionCommandErrorKey = null;
+        renderActionStatus(null);
+    }
+
+    async function sendActionCommand(operation, slot = selectedActionSlot(),
+        flags = 0) {
+        const deviceDefinition = hidDevice ? findDeviceDefinition(hidDevice) : null;
+        if (!hidDevice || !hidDevice.opened || !deviceDefinition) {
+            actionCommandErrorKey = 'action.communicationFailed';
+            renderActionStatus(currentActionStatus);
+            return;
+        }
+        const report = new Uint8Array(63);
+        report[0] = WEB_ACTION_COMMAND;
+        report[1] = WEB_ACTION_MAGIC[0];
+        report[2] = WEB_ACTION_MAGIC[1];
+        report[3] = WEB_ACTION_PROTOCOL_VERSION;
+        report[4] = operation;
+        report[5] = slot;
+        report[6] = flags;
+
+        actionCommandErrorKey = null;
+        actionCommandInProgress = true;
+        refreshActionControls();
+        try {
+            await hidDevice.sendReport(deviceDefinition.outputReportId, report);
+        } catch (_) {
+            actionCommandErrorKey = 'action.communicationFailed';
+        } finally {
+            setTimeout(() => {
+                actionCommandInProgress = false;
+                renderActionStatus(currentActionStatus);
+            }, 150);
+        }
+    }
+
+    async function handleDeleteAction() {
+        const slot = selectedActionSlot();
+        if (!await showCustomConfirm(translate('confirm.deleteAction', {
+            slot: slot + 1,
+        }))) return;
+        await sendActionCommand(WEB_ACTION_OPERATIONS.DELETE, slot);
+    }
+
+    function handleStopAction() {
+        if (!currentActionStatus) return;
+        if (currentActionStatus.state === WEB_ACTION_STATES.RECORDING) {
+            const slot = currentActionStatus.activeSlot < WEB_ACTION_SLOT_COUNT
+                ? currentActionStatus.activeSlot : selectedActionSlot();
+            sendActionCommand(WEB_ACTION_OPERATIONS.STOP_RECORDING, slot);
+        } else if (currentActionStatus.state === WEB_ACTION_STATES.PLAYING) {
+            sendActionCommand(WEB_ACTION_OPERATIONS.STOP_PLAYBACK);
+        }
     }
 
     function formatSensorValue(value) {
@@ -1052,6 +1349,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sensorTelemetrySupported = false;
         mainContent.classList.remove('sensor-monitoring');
         resetSensorMonitor();
+        renderLeverPosition(null);
+        resetActionControls();
     }
 
     function scheduleSensorTelemetryPoll(generation, delayMs) {
@@ -1086,6 +1385,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const telemetry = decodeSensorTelemetry(data);
             sensorTelemetrySupported = true;
             renderFirmwareVersion(telemetry.firmwareVersion);
+            renderActionStatus(telemetry.action);
             renderSensorSide('left', telemetry.left);
             renderSensorSide('right', telemetry.right);
             scheduleSensorTelemetryPoll(generation,
@@ -1093,6 +1393,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             if (generation !== sensorTelemetryGeneration) return;
             sensorTelemetrySupported = false;
+            renderActionStatus(null);
             for (const sideName of ['left', 'right']) {
                 setSensitivityStatus(sideName, 'sensor.unsupported', 'error');
             }
@@ -1263,6 +1564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const buttonStates = deviceDefinition.mode === USB_MODES.IO4
             ? decodeIo4ButtonStates(data)
             : decodeRawButtonStates(data);
+        renderLeverPosition(decodeLeverPosition(data, deviceDefinition.mode));
         if (!buttonStates) return;
         updateButtonStates(buttonStates);
     }
@@ -1606,6 +1908,7 @@ document.addEventListener('DOMContentLoaded', () => {
         firmwareUploadBtn.disabled = isBusy;
         firmwareUpdateCloseBtn.style.visibility = isBusy ? 'hidden' : 'visible';
         refreshSensitivityControls();
+        refreshActionControls();
     }
 
     async function handleFirmwareUpload() {
@@ -1691,6 +1994,35 @@ document.addEventListener('DOMContentLoaded', () => {
             !isSet(buttons0, 14),
             isSet(buttons0, 13),
         ];
+    }
+
+    function decodeLeverPosition(data, usbMode) {
+        if (usbMode === USB_MODES.IO4) {
+            if (data.byteLength < 2) return null;
+            const adc = data.getUint16(0, true);
+            return Math.max(-1, Math.min(1, (32767 - adc) / 32767));
+        }
+        if (data.byteLength < 12) return null;
+        return Math.max(-1, Math.min(1, data.getInt16(10, true) / 16383));
+    }
+
+    function renderLeverPosition(position) {
+        const available = Number.isFinite(position);
+        const normalized = available ? Math.max(-1, Math.min(1, position)) : 0;
+        const trackPosition = (normalized + 1) * 50;
+        const value = Math.round(normalized * 100);
+        leverPositionThumb.style.left = `${trackPosition}%`;
+        leverPositionFill.style.left = `${Math.min(50, trackPosition)}%`;
+        leverPositionFill.style.width = `${Math.abs(trackPosition - 50)}%`;
+        leverMonitor.classList.toggle('has-signal', available);
+        if (available) {
+            const displayValue = value > 0 ? `+${value}` : value.toString();
+            setLocalizedAriaLabel(leverMonitor, 'lever.position', {
+                value: displayValue,
+            });
+        } else {
+            setLocalizedAriaLabel(leverMonitor, 'lever.waiting');
+        }
     }
 
     function updateButtonStates(buttonStates) {
@@ -2100,6 +2432,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     ioLightOverrideSwitch.addEventListener('change', handleIoLightSwitchChange);
     usbModeSelect.addEventListener('change', () => setSelectedUsbMode(Number(usbModeSelect.value)));
+    actionSlotSelect.addEventListener('change', () => {
+        actionCommandErrorKey = null;
+        renderActionStatus(currentActionStatus);
+    });
+    actionRecordBtn.addEventListener('click', () => sendActionCommand(
+        WEB_ACTION_OPERATIONS.START_RECORDING));
+    actionPlayBtn.addEventListener('click', () => sendActionCommand(
+        WEB_ACTION_OPERATIONS.START_PLAYBACK,
+        selectedActionSlot(),
+        actionLoopSwitch.checked ? WEB_ACTION_FLAG_LOOP : 0));
+    actionStopBtn.addEventListener('click', handleStopAction);
+    actionDeleteBtn.addEventListener('click', handleDeleteAction);
     for (const sideName of ['left', 'right']) {
         const elements = sensorCardElements[sideName];
         elements.sensitivityInput.addEventListener('input', () => {
@@ -2185,6 +2529,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applySystemTheme();
     setLanguage(currentLanguage, false);
     renderFirmwareVersion(null);
+    resetActionControls();
     setConnectButtonState(false);
     setSelectedUsbMode(Number(localStorage.getItem('pgeki-usb-mode')));
     switchProfile(0); // Activate the first profile by default

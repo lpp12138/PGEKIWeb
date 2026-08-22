@@ -102,6 +102,14 @@
                 </dl>
         </article>
 
+        <section id="lever-monitor" class="lever-monitor" aria-label="摇杆：等待控制器"
+            data-i18n-aria-label="lever.waiting">
+            <div class="lever-track" aria-hidden="true">
+                <span class="lever-center-mark"></span>
+                <span id="lever-position-fill" class="lever-position-fill"></span>
+                <span id="lever-position-thumb" class="lever-position-thumb"></span>
+            </div>
+        </section>
         <div class="keyboard">
             <div class="key key-rect" data-key-id="0"><span></span></div>
             <div class="key-group">
@@ -120,6 +128,31 @@
             <div class="key key-circle key-disabled"><span></span></div>
             <div class="key key-circle" data-key-id="9"><span></span></div>
         </div>
+
+        <section id="action-controls" class="action-controls action-controls-main" aria-label="动作录制与回放"
+            data-i18n-aria-label="action.title">
+            <h3 data-i18n="action.title">动作录制与回放</h3>
+            <div class="action-control-row">
+                <div class="action-slot-row">
+                    <label for="action-slot-select" data-i18n="action.slot">槽位</label>
+                    <select id="action-slot-select" disabled></select>
+                </div>
+                <div class="action-loop-row">
+                    <label for="action-loop-switch" data-i18n="action.loop">循环回放</label>
+                    <label class="switch action-loop-switch">
+                        <input type="checkbox" id="action-loop-switch" disabled>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="action-button-grid">
+                    <button id="action-record-btn" type="button" disabled data-i18n="action.record">● 录制</button>
+                    <button id="action-play-btn" type="button" disabled data-i18n="action.play">▶ 回放</button>
+                    <button id="action-stop-btn" type="button" disabled data-i18n="action.stop">■ 停止</button>
+                    <button id="action-delete-btn" type="button" disabled data-i18n="action.delete">删除</button>
+                </div>
+            </div>
+            <p id="action-status" class="action-status" aria-live="polite" data-i18n="action.disconnected">连接控制器后可用</p>
+        </section>
 
         <article class="sensor-card sensor-card-right" data-sensor-side="right">
             <div class="sensor-sensitivity-control">

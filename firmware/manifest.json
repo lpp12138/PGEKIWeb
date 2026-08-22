@@ -4,6 +4,18 @@
   "firmware": [
     {
       "name": "PGEKI2",
+      "version": "1.1.0",
+      "path": "1.1.0/PGEKI2_ESP32.bin",
+      "size": 941504,
+      "sha256": "beb6fc607794b22dd427533f10fc2638e9e2984dfc6272b8534def564c15ef45",
+      "notes": "新增8槽动作录制与回放，记录按键、摇杆和事件时序；双核异步保存并为其他配置保留至少2 MiB storage空间",
+      "notesI18n": {
+        "zh-CN": "新增8槽动作录制与回放，记录按键、摇杆和事件时序；双核异步保存并为其他配置保留至少2 MiB storage空间",
+        "en": "Adds eight action recording slots with button, lever and event timing capture; dual-core asynchronous storage preserves at least 2 MiB for other configuration data"
+      }
+    },
+    {
+      "name": "PGEKI2",
       "version": "1.0.1",
       "path": "1.0.1/PGEKI2_ESP32.bin",
       "size": 935088,
