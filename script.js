@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ioLightOverrideSwitch = document.getElementById('io-light-override-switch');
     const usbModeSelect = document.getElementById('usb-mode-select');
     const connectBtn = document.getElementById('connect-btn');
+    const mainContent = document.querySelector('.main-content');
     const modalContainer = document.getElementById('config-modal');
     const closeBtn = document.querySelector('.close-btn');
     const saveBtn = document.getElementById('save-btn');
@@ -53,6 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
         IO4: 2,
     });
     const WEB_CONFIG_COMMAND = 0x10;
+    const WEB_SENSITIVITY_COMMAND = 0x11;
+    const WEB_SENSITIVITY_MAGIC = Object.freeze([0x53, 0x54]);
+    const WEB_SENSITIVITY_PROTOCOL_VERSION = 1;
+    const SENSOR_SENSITIVITY_MINIMUM = -30;
+    const SENSOR_SENSITIVITY_MAXIMUM = 30;
+    const SENSOR_SENSITIVITY_CONFIRM_TIMEOUT_MS = 1500;
     const WEB_OTA_PROTOCOL_VERSION = 1;
     const WEB_OTA_COMMAND_MAGIC = Object.freeze([0xA5, 0x5A]);
     const WEB_OTA_COMMANDS = Object.freeze({
@@ -66,6 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEB_OTA_STATUS_COMPLETE = 0x01;
     const WEB_OTA_DATA_SIZE = 57;
     const WEB_OTA_MAXIMUM_IMAGE_SIZE = 2 * 1024 * 1024;
+    const SENSOR_TELEMETRY_MAGIC = Object.freeze([0x53, 0x54]);
+    const SENSOR_TELEMETRY_PROTOCOL_VERSION = 1;
+    const SENSOR_TELEMETRY_POLL_INTERVAL_MS = 50;
+    const SENSOR_TELEMETRY_HISTORY_POINTS = 120;
+    const SENSOR_CHART_WIDTH = 600;
+    const SENSOR_CHART_HEIGHT = 210;
     const USB_DEVICE_DEFINITIONS = Object.freeze([
         {
             vendorId: 0x0721,
@@ -75,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: USB_MODES.RAW_IO,
             outputReportId: 0x00,
             inputReportId: 0x00,
+            sensorFeatureReportId: 0x00,
         },
         {
             vendorId: 0x0ca3,
@@ -84,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: USB_MODES.IO4,
             outputReportId: 0x10,
             inputReportId: 0x01,
+            sensorFeatureReportId: 0x11,
         },
     ]);
     const buttonIndexToKeyId = Object.freeze([1, 2, 3, 0, 8, 4, 5, 6, 7, 9]);
@@ -99,6 +114,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let keydownListener = null;
     let otaUploadActive = false;
     let otaAckWaiter = null;
+    let sensorTelemetryTimer = null;
+    let sensorTelemetryGeneration = 0;
+    let sensorTelemetrySupported = false;
+    let sensorSensitivityWriteInProgress = false;
+    const sensorHistory = { left: [], right: [] };
+    const latestSensorSensitivity = { left: null, right: null };
+    const pendingSensorSensitivity = { left: null, right: null };
+    const sensorSensitivityConfirmTimer = { left: null, right: null };
+    const sensorCardElements = {
+        left: collectSensorCardElements('left'),
+        right: collectSensorCardElements('right'),
+    };
     let profiles = loadProfiles() || Array(6).fill(null).map(() => ({}));
 
     // --- Keycode Map ---
@@ -327,6 +354,315 @@ document.addEventListener('DOMContentLoaded', () => {
             parseInt(result[3], 16)
         ] : [0, 0, 0];
     }
+
+    function collectSensorCardElements(side) {
+        const card = document.querySelector(`[data-sensor-side="${side}"]`);
+        const field = name => card.querySelector(`[data-sensor-field="${name}"]`);
+        return {
+            card,
+            chart: card.querySelector('.sensor-chart'),
+            signalLine: card.querySelector('.sensor-signal-line'),
+            signalArea: card.querySelector('.sensor-signal-area'),
+            pressLine: card.querySelector('.sensor-press-line'),
+            releaseLine: card.querySelector('.sensor-release-line'),
+            signal: field('signal'),
+            pressThreshold: field('pressThreshold'),
+            releaseThreshold: field('releaseThreshold'),
+            sensitivity: field('sensitivity'),
+            sensitivityInput: card.querySelector('[data-sensor-control="sensitivity"]'),
+            sensitivityStatus: field('sensitivityStatus'),
+            raw: field('raw'),
+            filtered: field('filtered'),
+            baseline: field('baseline'),
+        };
+    }
+
+    function readTelemetrySide(data, offset, source, sensitivity,
+        calibrated, pressed) {
+        return {
+            source,
+            sensitivity,
+            calibrated,
+            pressed,
+            raw: data.getUint32(offset, true),
+            filtered: data.getUint32(offset + 4, true),
+            baseline: data.getUint32(offset + 8, true),
+            signal: data.getUint32(offset + 12, true),
+            pressThreshold: data.getUint32(offset + 16, true),
+            releaseThreshold: data.getUint32(offset + 20, true),
+        };
+    }
+
+    function decodeSensorTelemetry(data) {
+        const payloadOffset = data.byteLength >= 61 &&
+            data.getUint8(1) === SENSOR_TELEMETRY_MAGIC[0] &&
+            data.getUint8(2) === SENSOR_TELEMETRY_MAGIC[1] ? 1 : 0;
+        if (data.byteLength < payloadOffset + 60 ||
+            data.getUint8(payloadOffset) !== SENSOR_TELEMETRY_MAGIC[0] ||
+            data.getUint8(payloadOffset + 1) !== SENSOR_TELEMETRY_MAGIC[1] ||
+            data.getUint8(payloadOffset + 2) !== SENSOR_TELEMETRY_PROTOCOL_VERSION) {
+            throw new Error('传感遥测协议不兼容');
+        }
+        const flags = data.getUint8(payloadOffset + 3);
+        return {
+            left: readTelemetrySide(data, payloadOffset + 8,
+                data.getUint8(payloadOffset + 4),
+                data.getInt8(payloadOffset + 6),
+                Boolean(flags & 0x01), Boolean(flags & 0x02)),
+            right: readTelemetrySide(data, payloadOffset + 32,
+                data.getUint8(payloadOffset + 5),
+                data.getInt8(payloadOffset + 7),
+                Boolean(flags & 0x04), Boolean(flags & 0x08)),
+            sequence: data.getUint32(payloadOffset + 56, true),
+        };
+    }
+
+    function formatSensorValue(value) {
+        return Number(value).toLocaleString('zh-CN');
+    }
+
+    function formatSensitivity(value) {
+        const numericValue = Number(value);
+        return numericValue > 0 ? `+${numericValue}` : `${numericValue}`;
+    }
+
+    function setSensitivityStatus(sideName, text, state = '') {
+        const status = sensorCardElements[sideName].sensitivityStatus;
+        status.textContent = text;
+        status.classList.remove('saving', 'saved', 'error');
+        if (state) status.classList.add(state);
+    }
+
+    function refreshSensitivityControls() {
+        const enabled = Boolean(hidDevice && hidDevice.opened) &&
+            !otaUploadActive && !sensorSensitivityWriteInProgress &&
+            sensorTelemetrySupported &&
+            latestSensorSensitivity.left !== null &&
+            latestSensorSensitivity.right !== null;
+        sensorCardElements.left.sensitivityInput.disabled = !enabled;
+        sensorCardElements.right.sensitivityInput.disabled = !enabled;
+    }
+
+    function clearSensitivityConfirmation(sideName) {
+        if (sensorSensitivityConfirmTimer[sideName] !== null) {
+            clearTimeout(sensorSensitivityConfirmTimer[sideName]);
+            sensorSensitivityConfirmTimer[sideName] = null;
+        }
+    }
+
+    function waitForSensitivityConfirmation(sideName, sensitivity) {
+        clearSensitivityConfirmation(sideName);
+        pendingSensorSensitivity[sideName] = sensitivity;
+        sensorSensitivityConfirmTimer[sideName] = setTimeout(() => {
+            if (pendingSensorSensitivity[sideName] !== sensitivity) return;
+            pendingSensorSensitivity[sideName] = null;
+            const elements = sensorCardElements[sideName];
+            if (latestSensorSensitivity[sideName] !== null) {
+                elements.sensitivityInput.value = latestSensorSensitivity[sideName];
+                elements.sensitivity.textContent =
+                    formatSensitivity(latestSensorSensitivity[sideName]);
+            }
+            setSensitivityStatus(sideName, '控制器未确认，请重试', 'error');
+            refreshSensitivityControls();
+        }, SENSOR_SENSITIVITY_CONFIRM_TIMEOUT_MS);
+    }
+
+    async function writeSensorSensitivity(sideName) {
+        if (!hidDevice || !hidDevice.opened || otaUploadActive ||
+            sensorSensitivityWriteInProgress) return;
+        const deviceDefinition = findDeviceDefinition(hidDevice);
+        if (!deviceDefinition) return;
+
+        const left = Math.max(SENSOR_SENSITIVITY_MINIMUM,
+            Math.min(SENSOR_SENSITIVITY_MAXIMUM,
+                Number(sensorCardElements.left.sensitivityInput.value)));
+        const right = Math.max(SENSOR_SENSITIVITY_MINIMUM,
+            Math.min(SENSOR_SENSITIVITY_MAXIMUM,
+                Number(sensorCardElements.right.sensitivityInput.value)));
+        const requested = sideName === 'left' ? left : right;
+        const report = new Uint8Array(63);
+        report[0] = WEB_SENSITIVITY_COMMAND;
+        report[1] = WEB_SENSITIVITY_MAGIC[0];
+        report[2] = WEB_SENSITIVITY_MAGIC[1];
+        report[3] = WEB_SENSITIVITY_PROTOCOL_VERSION;
+        report[4] = left & 0xff;
+        report[5] = right & 0xff;
+
+        sensorSensitivityWriteInProgress = true;
+        setSensitivityStatus(sideName, '正在保存…', 'saving');
+        refreshSensitivityControls();
+        try {
+            await hidDevice.sendReport(deviceDefinition.outputReportId, report);
+            waitForSensitivityConfirmation(sideName, requested);
+            setSensitivityStatus(sideName, '等待控制器确认…', 'saving');
+        } catch (error) {
+            pendingSensorSensitivity[sideName] = null;
+            setSensitivityStatus(sideName, '写入失败，请重试', 'error');
+            const previous = latestSensorSensitivity[sideName];
+            if (previous !== null) {
+                sensorCardElements[sideName].sensitivityInput.value = previous;
+                sensorCardElements[sideName].sensitivity.textContent =
+                    formatSensitivity(previous);
+            }
+        } finally {
+            sensorSensitivityWriteInProgress = false;
+            refreshSensitivityControls();
+        }
+    }
+
+    function renderSensorSide(sideName, telemetry) {
+        const elements = sensorCardElements[sideName];
+        latestSensorSensitivity[sideName] = telemetry.sensitivity;
+        if (pendingSensorSensitivity[sideName] === telemetry.sensitivity) {
+            pendingSensorSensitivity[sideName] = null;
+            clearSensitivityConfirmation(sideName);
+            setSensitivityStatus(sideName, '已同步到控制器', 'saved');
+        }
+        if (document.activeElement !== elements.sensitivityInput &&
+            pendingSensorSensitivity[sideName] === null) {
+            elements.sensitivityInput.value = telemetry.sensitivity;
+            elements.sensitivity.textContent =
+                formatSensitivity(telemetry.sensitivity);
+            if (!elements.sensitivityStatus.classList.contains('saved') &&
+                !elements.sensitivityStatus.classList.contains('error')) {
+                setSensitivityStatus(sideName, '已同步', 'saved');
+            }
+        }
+        const history = sensorHistory[sideName];
+        history.push(telemetry.signal);
+        if (history.length > SENSOR_TELEMETRY_HISTORY_POINTS) history.shift();
+
+        const maximumValue = Math.max(
+            1,
+            telemetry.pressThreshold * 1.15,
+            telemetry.releaseThreshold * 1.15,
+            ...history,
+        );
+        const chartBottom = SENSOR_CHART_HEIGHT - 5;
+        const chartTop = 5;
+        const valueToY = value => chartBottom -
+            Math.min(maximumValue, value) / maximumValue *
+            (chartBottom - chartTop);
+        const pointToX = index => history.length <= 1
+            ? 0
+            : index * SENSOR_CHART_WIDTH / (history.length - 1);
+        const points = history.map((value, index) =>
+            `${pointToX(index).toFixed(1)},${valueToY(value).toFixed(1)}`
+        );
+        const signalPath = points.length > 0 ? `M${points.join(' L')}` : '';
+        const areaPath = points.length > 0
+            ? `M${pointToX(0).toFixed(1)},${chartBottom} L${points.join(' L')} ` +
+              `L${pointToX(history.length - 1).toFixed(1)},${chartBottom} Z`
+            : '';
+
+        elements.signalLine.setAttribute('d', signalPath);
+        elements.signalArea.setAttribute('d', areaPath);
+        const pressY = valueToY(telemetry.pressThreshold).toFixed(1);
+        const releaseY = valueToY(telemetry.releaseThreshold).toFixed(1);
+        elements.pressLine.setAttribute('y1', pressY);
+        elements.pressLine.setAttribute('y2', pressY);
+        elements.releaseLine.setAttribute('y1', releaseY);
+        elements.releaseLine.setAttribute('y2', releaseY);
+
+        elements.signal.textContent = `信号 ${formatSensorValue(telemetry.signal)}`;
+        elements.pressThreshold.textContent =
+            `触发 ${formatSensorValue(telemetry.pressThreshold)}`;
+        elements.releaseThreshold.textContent =
+            `释放 ${formatSensorValue(telemetry.releaseThreshold)}`;
+        elements.raw.textContent = formatSensorValue(telemetry.raw);
+        elements.filtered.textContent = formatSensorValue(telemetry.filtered);
+        elements.baseline.textContent = formatSensorValue(telemetry.baseline);
+        elements.card.classList.toggle('pressed', telemetry.pressed);
+        elements.chart.setAttribute('aria-label',
+            `${sideName === 'left' ? '左' : '右'}侧键信号 ${telemetry.signal}，` +
+            `触发阈值 ${telemetry.pressThreshold}，释放阈值 ${telemetry.releaseThreshold}，` +
+            `灵敏度 ${telemetry.sensitivity}`);
+        refreshSensitivityControls();
+    }
+
+    function resetSensorMonitor() {
+        for (const sideName of ['left', 'right']) {
+            sensorHistory[sideName].length = 0;
+            latestSensorSensitivity[sideName] = null;
+            pendingSensorSensitivity[sideName] = null;
+            clearSensitivityConfirmation(sideName);
+            const elements = sensorCardElements[sideName];
+            elements.signalLine.setAttribute('d', '');
+            elements.signalArea.setAttribute('d', '');
+            elements.card.classList.remove('pressed');
+            elements.signal.textContent = '信号 --';
+            elements.pressThreshold.textContent = '触发 --';
+            elements.releaseThreshold.textContent = '释放 --';
+            elements.sensitivity.textContent = '--';
+            elements.sensitivityInput.value = 0;
+            elements.sensitivityInput.disabled = true;
+            setSensitivityStatus(sideName, '等待控制器');
+            elements.raw.textContent = '--';
+            elements.filtered.textContent = '--';
+            elements.baseline.textContent = '--';
+        }
+    }
+
+    function stopSensorTelemetry() {
+        sensorTelemetryGeneration++;
+        if (sensorTelemetryTimer !== null) clearTimeout(sensorTelemetryTimer);
+        sensorTelemetryTimer = null;
+        sensorTelemetrySupported = false;
+        mainContent.classList.remove('sensor-monitoring');
+        resetSensorMonitor();
+    }
+
+    function scheduleSensorTelemetryPoll(generation, delayMs) {
+        if (generation !== sensorTelemetryGeneration) return;
+        sensorTelemetryTimer = setTimeout(
+            () => pollSensorTelemetry(generation), delayMs);
+    }
+
+    async function pollSensorTelemetry(generation) {
+        if (generation !== sensorTelemetryGeneration ||
+            !hidDevice || !hidDevice.opened) return;
+        if (otaUploadActive) {
+            refreshSensitivityControls();
+            scheduleSensorTelemetryPoll(generation, 200);
+            return;
+        }
+
+        const deviceDefinition = findDeviceDefinition(hidDevice);
+        if (!deviceDefinition || typeof hidDevice.receiveFeatureReport !== 'function') {
+            sensorTelemetrySupported = false;
+            for (const sideName of ['left', 'right']) {
+                setSensitivityStatus(sideName, '当前固件不支持调节', 'error');
+            }
+            refreshSensitivityControls();
+            return;
+        }
+
+        try {
+            const data = await hidDevice.receiveFeatureReport(
+                deviceDefinition.sensorFeatureReportId);
+            if (generation !== sensorTelemetryGeneration) return;
+            const telemetry = decodeSensorTelemetry(data);
+            sensorTelemetrySupported = true;
+            renderSensorSide('left', telemetry.left);
+            renderSensorSide('right', telemetry.right);
+            scheduleSensorTelemetryPoll(generation,
+                SENSOR_TELEMETRY_POLL_INTERVAL_MS);
+        } catch (error) {
+            if (generation !== sensorTelemetryGeneration) return;
+            sensorTelemetrySupported = false;
+            for (const sideName of ['left', 'right']) {
+                setSensitivityStatus(sideName, '当前固件不支持调节', 'error');
+            }
+            refreshSensitivityControls();
+        }
+    }
+
+    function startSensorTelemetry() {
+        stopSensorTelemetry();
+        mainContent.classList.add('sensor-monitoring');
+        const generation = sensorTelemetryGeneration;
+        pollSensorTelemetry(generation);
+    }
     
     /**
      * Handles the click event on the connect button.
@@ -367,12 +703,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Start listening for input reports from the device
             hidDevice.addEventListener("inputreport", handleInputReport);
+            startSensorTelemetry();
             //console.log('现在开始监听设备按键回报了喵~');
             
             // Listen for the device to be disconnected
             navigator.hid.addEventListener('disconnect', (e) => {
                 if (e.device === hidDevice) {
                     cancelOtaWaiter(new Error('设备已断开连接'));
+                    stopSensorTelemetry();
                     //console.log('设备已断开连接喵！');
                     hidDevice = null;
                     connectedUsbMode = null;
@@ -619,6 +957,7 @@ document.addEventListener('DOMContentLoaded', () => {
         firmwareFileInput.disabled = isBusy;
         firmwareUploadBtn.disabled = isBusy;
         firmwareUpdateCloseBtn.style.visibility = isBusy ? 'hidden' : 'visible';
+        refreshSensitivityControls();
     }
 
     async function handleFirmwareUpload() {
@@ -1114,6 +1453,17 @@ document.addEventListener('DOMContentLoaded', () => {
     firmwareUploadBtn.addEventListener('click', handleFirmwareUpload);
     ioLightOverrideSwitch.addEventListener('change', handleIoLightSwitchChange);
     usbModeSelect.addEventListener('change', () => setSelectedUsbMode(Number(usbModeSelect.value)));
+    for (const sideName of ['left', 'right']) {
+        const elements = sensorCardElements[sideName];
+        elements.sensitivityInput.addEventListener('input', () => {
+            elements.sensitivity.textContent =
+                formatSensitivity(elements.sensitivityInput.value);
+            setSensitivityStatus(sideName, '');
+        });
+        elements.sensitivityInput.addEventListener('change', () => {
+            writeSensorSensitivity(sideName);
+        });
+    }
     recordKeyBtn.addEventListener('click', handleRecordKey);
     toggleInputModeBtn.addEventListener('click', handleToggleInputMode);
     themeSwitch.addEventListener('change', handleThemeSwitch);
