@@ -4,11 +4,27 @@
   "firmware": [
     {
       "name": "PGEKI2",
+      "version": "1.1.0",
+      "path": "1.1.0/PGEKI2_ESP32.bin",
+      "size": 941504,
+      "sha256": "beb6fc607794b22dd427533f10fc2638e9e2984dfc6272b8534def564c15ef45",
+      "notes": "新增8槽动作录制与回放，记录按键、摇杆和事件时序；双核异步保存并为其他配置保留至少2 MiB storage空间",
+      "notesI18n": {
+        "zh-CN": "新增8槽动作录制与回放，记录按键、摇杆和事件时序；双核异步保存并为其他配置保留至少2 MiB storage空间",
+        "en": "Adds eight action recording slots with button, lever and event timing capture; dual-core asynchronous storage preserves at least 2 MiB for other configuration data"
+      }
+    },
+    {
+      "name": "PGEKI2",
       "version": "1.0.1",
       "path": "1.0.1/PGEKI2_ESP32.bin",
       "size": 935088,
       "sha256": "ac514c68db319609fd6cb40b58cb29f588573b6d5f39f3740ee60652591f45d6",
-      "notes": "配置槽0独立保存RAW/IO4模式，IO4可切换到槽位1到5的RAW键鼠复合模式"
+      "notes": "配置槽0独立保存RAW/IO4模式，IO4可切换到槽位1到5的RAW键鼠复合模式",
+      "notesI18n": {
+        "zh-CN": "配置槽0独立保存RAW/IO4模式，IO4可切换到槽位1到5的RAW键鼠复合模式",
+        "en": "Slot 0 stores the RAW/IO4 mode; IO4 can switch to the RAW keyboard/mouse composite mode in slots 1–5"
+      }
     },
     {
       "name": "PGEKI2",
@@ -16,7 +32,11 @@
       "path": "1.0.0/PGEKI2_ESP32.bin",
       "size": 934992,
       "sha256": "d9e83f0a66f0e045a371518bdce50ead3e8ede6bf4048501a18ed0245a9d750e",
-      "notes": "首个公开更新版本"
+      "notes": "首个公开更新版本",
+      "notesI18n": {
+        "zh-CN": "首个公开更新版本",
+        "en": "First public firmware update"
+      }
     }
   ]
 }
