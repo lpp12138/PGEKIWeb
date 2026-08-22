@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGEKI Web Configurator</title>
-    <link inline rel="stylesheet" href="./style.css?v=1.0.2">
+    <link inline rel="stylesheet" href="./style.css?v=1.0.3">
 </head>
 <body>
     <div id="sidebar" class="collapsed">
@@ -40,13 +40,6 @@
             <button id="load-config-btn" data-i18n="sidebar.loadConfig">📁载入配置</button>
             <input type="file" id="load-config-input" accept=".json" style="display: none;" title="载入配置"
                 data-i18n-title="sidebar.loadConfigTitle">
-            <div id="theme-controls" class="sidebar-setting">
-                <label for="theme-checkbox" data-i18n="sidebar.switchTheme">🗘切换主题</label>
-                <label class="switch">
-                    <input type="checkbox" id="theme-checkbox" />
-                    <span class="slider round"></span>
-                </label>
-            </div>
         </div>
     </div>
     <div id="sidebar-toggle">
@@ -67,12 +60,8 @@
             </div>
         </div>
         <div class="header-right">
-            <label class="visually-hidden" for="language-select" data-i18n="language.label">语言</label>
-            <select id="language-select" class="language-select" aria-label="语言" title="切换界面语言"
-                data-i18n-aria-label="language.label" data-i18n-title="language.title">
-                <option value="zh-CN">简体中文</option>
-                <option value="en">English</option>
-            </select>
+            <button id="language-toggle-btn" class="language-icon-button" type="button"
+                aria-label="当前为简体中文，点击切换到 English" title="当前为简体中文，点击切换到 English">🌐</button>
             <span id="firmware-version" title="控制器当前运行的固件版本"
                 data-i18n-title="header.firmwareVersionTitle">固件 v--</span>
             <button id="connect-btn">点我连接设备喵</button>
@@ -391,6 +380,6 @@
         </div>
     </div>
 
-    <script inline src="./script.js?v=1.0.2"></script>
+    <script inline src="./script.js?v=1.0.3"></script>
 </body>
 </html>

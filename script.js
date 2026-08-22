@@ -7,8 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'common.ok': '知道了喵!',
             'common.confirm': '确定',
             'common.cancel': '取消',
-            'language.label': '语言',
-            'language.title': '切换界面语言',
+            'language.switchToEn': '当前为简体中文，点击切换到 English',
+            'language.switchToZh': '当前为 English，点击切换到简体中文',
             'sidebar.toolbox': '工具箱',
             'sidebar.keycodes': '📖查看键码',
             'sidebar.resetLights': '✨重置灯光',
@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
             'sidebar.saveConfig': '💾保存配置',
             'sidebar.loadConfig': '📁载入配置',
             'sidebar.loadConfigTitle': '载入配置',
-            'sidebar.switchTheme': '🗘切换主题',
             'header.firmwareVersion': '固件 v{version}',
             'header.firmwareVersionTitle': '控制器当前运行的固件版本',
             'header.connect': '点我连接设备喵',
@@ -156,8 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'common.ok': 'Got it!',
             'common.confirm': 'Confirm',
             'common.cancel': 'Cancel',
-            'language.label': 'Language',
-            'language.title': 'Switch interface language',
+            'language.switchToEn': 'Language: 简体中文; switch to English',
+            'language.switchToZh': 'Language: English; switch to 简体中文',
             'sidebar.toolbox': 'Toolbox',
             'sidebar.keycodes': '📖 Keycodes',
             'sidebar.resetLights': '✨ Reset lights',
@@ -178,7 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
             'sidebar.saveConfig': '💾 Save config',
             'sidebar.loadConfig': '📁 Load config',
             'sidebar.loadConfigTitle': 'Load configuration',
-            'sidebar.switchTheme': '🗘 Switch theme',
             'header.firmwareVersion': 'Firmware v{version}',
             'header.firmwareVersionTitle': 'Firmware version currently running on the controller',
             'header.connect': 'Connect device',
@@ -301,17 +299,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }),
     });
 
-    function resolveInitialLanguage() {
-        const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-        if (Object.prototype.hasOwnProperty.call(TRANSLATIONS, savedLanguage)) {
-            return savedLanguage;
-        }
+    function resolveBrowserLanguage() {
         const browserLanguages = navigator.languages && navigator.languages.length
             ? navigator.languages
             : [navigator.language || 'zh-CN'];
         return browserLanguages.some(language => /^zh(?:-|$)/i.test(language)) ? 'zh-CN' : 'en';
     }
 
+    function resolveInitialLanguage() {
+        const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+        if (Object.prototype.hasOwnProperty.call(TRANSLATIONS, savedLanguage)) {
+            return savedLanguage;
+        }
+        return resolveBrowserLanguage();
+    }
+
+    let languageFollowsBrowser = !Object.prototype.hasOwnProperty.call(
+        TRANSLATIONS,
+        localStorage.getItem(LANGUAGE_STORAGE_KEY),
+    );
     let currentLanguage = resolveInitialLanguage();
 
     function translate(key, parameters = {}) {
@@ -376,21 +382,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderLanguageToggleButton() {
+        const titleKey = currentLanguage === 'zh-CN'
+            ? 'language.switchToEn'
+            : 'language.switchToZh';
+        languageToggleBtn.title = translate(titleKey);
+        languageToggleBtn.setAttribute('aria-label', translate(titleKey));
+        languageToggleBtn.dataset.language = currentLanguage;
+    }
+
     function setLanguage(language, persist = true) {
         currentLanguage = Object.prototype.hasOwnProperty.call(TRANSLATIONS, language)
             ? language
-            : 'zh-CN';
-        if (persist) localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
-        if (languageSelect) languageSelect.value = currentLanguage;
+            : resolveBrowserLanguage();
+        if (persist) {
+            languageFollowsBrowser = false;
+            localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+        }
         applyTranslations();
+        renderLanguageToggleButton();
         if (firmwareCatalogLoadPromise || firmwareCatalogEntries.length) {
             updateFirmwareReleaseInfo();
         }
     }
 
     // --- DOM Elements ---
-    const languageSelect = document.getElementById('language-select');
-    const themeSwitch = document.getElementById('theme-checkbox');
+    const languageToggleBtn = document.getElementById('language-toggle-btn');
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const ioModeControls = document.getElementById('io-mode-controls');
@@ -2035,36 +2052,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Theme Management ---
-    function setTheme(isLight) {
-        if (isLight) {
-            document.body.classList.add('light-mode');
-            themeSwitch.checked = true;
-        } else {
-            document.body.classList.remove('light-mode');
-            themeSwitch.checked = false;
-        }
-    }
+    const systemThemeMedia = window.matchMedia('(prefers-color-scheme: light)');
 
-    function applyInitialTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            // If there's a theme saved, use it
-            setTheme(savedTheme === 'light');
-        } else {
-            // Otherwise, use the system preference
-            const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-            setTheme(prefersLight);
-        }
-    }
-
-    function handleThemeSwitch() {
-        if (themeSwitch.checked) {
-            document.body.classList.add('light-mode');
-            localStorage.setItem('theme', 'light');
-        } else {
-            document.body.classList.remove('light-mode');
-            localStorage.setItem('theme', 'dark');
-        }
+    function applySystemTheme() {
+        document.body.classList.toggle('light-mode', systemThemeMedia.matches);
     }
 
     // --- Event Listeners ---
@@ -2122,8 +2113,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     recordKeyBtn.addEventListener('click', handleRecordKey);
     toggleInputModeBtn.addEventListener('click', handleToggleInputMode);
-    themeSwitch.addEventListener('change', handleThemeSwitch);
-    languageSelect.addEventListener('change', () => setLanguage(languageSelect.value));
+    languageToggleBtn.addEventListener('click', () => {
+        setLanguage(currentLanguage === 'zh-CN' ? 'en' : 'zh-CN');
+    });
+    window.addEventListener('languagechange', () => {
+        if (languageFollowsBrowser) setLanguage(resolveBrowserLanguage(), false);
+    });
+    if (typeof systemThemeMedia.addEventListener === 'function') {
+        systemThemeMedia.addEventListener('change', applySystemTheme);
+    } else {
+        systemThemeMedia.addListener(applySystemTheme);
+    }
 
     // Keycode List Modal Listeners
     showKeycodeListBtn.addEventListener('click', () => {
@@ -2182,7 +2182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Setup ---
     document.body.classList.add('sidebar-collapsed');
-    applyInitialTheme();
+    applySystemTheme();
     setLanguage(currentLanguage, false);
     renderFirmwareVersion(null);
     setConnectButtonState(false);
