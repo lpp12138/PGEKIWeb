@@ -170,6 +170,8 @@ body.light-mode #toggle-input-mode-btn:hover {
     transform: translateX(0);
     transition: transform 0.35s ease;
     z-index: 1000;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 #sidebar.collapsed {
@@ -239,15 +241,20 @@ body.light-mode .sidebar-content h3 {
     border-bottom-color: var(--key-shadow);
 }
 
-.sidebar-content button {
+.sidebar-content button,
+.sidebar-content .sidebar-action {
     display: block;
     width: 100%;
+    box-sizing: border-box;
     margin-bottom: 15px;
     padding: 10px 15px;
     border: none;
     border-radius: 5px;
     color: white;
     font-size: 16px;
+    line-height: normal;
+    text-align: center;
+    text-decoration: none;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
@@ -255,15 +262,39 @@ body.light-mode .sidebar-content h3 {
 
 
 
-#io-mode-controls {
+.sidebar-setting {
     padding: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
 }
 
-body.light-mode #io-mode-controls {
+body.light-mode .sidebar-setting {
     border-top-color: var(--key-shadow); /* Use a darker color for visibility */
+}
+
+#usb-mode-select {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 9px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--input-bg);
+    color: var(--input-text);
+    cursor: pointer;
+}
+
+#device-mode-controls {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.device-mode-hint {
+    margin: -5px 15px 10px;
+    color: #95a5a6;
+    font-size: 12px;
+    line-height: 1.5;
 }
 
 .switch {
@@ -344,6 +375,16 @@ input:checked + .slider:before {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+#firmware-version {
+    min-width: 76px;
+    color: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    opacity: 0.8;
 }
 
 .profiles {
@@ -457,6 +498,130 @@ body.light-mode #show-keycode-list-btn:hover {
     background-color: var(--accent-color-btn-hover);
 }
 
+#firmware-update-btn {
+    background-color: #16a085;
+    border-bottom: 3px solid #117864;
+}
+
+#firmware-update-btn:hover,
+#firmware-update-btn:focus-visible {
+    background-color: #1abc9c;
+}
+
+#firmware-update-modal .modal-content {
+    position: relative;
+    width: min(430px, calc(100vw - 70px));
+}
+
+.firmware-update-close-btn {
+    padding: 0 5px;
+    color: var(--text-color);
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.firmware-update-description,
+.firmware-update-hint,
+#firmware-release-info,
+#firmware-update-status {
+    line-height: 1.55;
+}
+
+.firmware-update-hint {
+    margin: 12px 0 0;
+    color: #95a5a6;
+    font-size: 12px;
+}
+
+.firmware-source-label {
+    display: block;
+    margin: 12px 0 6px;
+    color: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#firmware-release-select {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background: var(--input-bg);
+    color: var(--input-text);
+}
+
+#firmware-release-info {
+    min-height: 1.55em;
+    margin: 6px 0 0;
+    color: #95a5a6;
+    font-size: 12px;
+}
+
+#firmware-file-input,
+#firmware-update-progress {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 10px 0;
+}
+
+#firmware-file-input {
+    padding: 10px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background: var(--input-bg);
+    color: var(--input-text);
+}
+
+#firmware-update-status {
+    min-height: 1.55em;
+    margin: 6px 0 12px;
+}
+
+#firmware-upload-btn,
+.firmware-update-link {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    border: 0;
+    border-radius: 5px;
+    background: var(--accent-color-btn);
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#firmware-upload-btn:hover,
+.firmware-update-link:hover {
+    background: var(--accent-color-btn-hover);
+}
+
+#firmware-upload-btn:disabled,
+#firmware-release-select:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.firmware-update-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0;
+    color: #95a5a6;
+}
+
+.firmware-update-divider::before,
+.firmware-update-divider::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--border-color);
+}
+
 .main-content {
     flex-grow: 1;
     display: flex;
@@ -464,6 +629,294 @@ body.light-mode #show-keycode-list-btn:hover {
     align-items: center;
     flex-direction: column;
     gap: 20px;
+    position: relative;
+}
+
+.sensor-card {
+    --sensor-color: #46d7ff;
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    display: block;
+    width: clamp(96px, calc((100% - 990px) / 2), 320px);
+    box-sizing: border-box;
+    padding: 15px;
+    overflow: hidden;
+    border: 1px solid rgba(127, 140, 141, 0.3);
+    border-radius: 14px;
+    background: rgba(28, 43, 58, 0.82);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition: opacity .16s ease, visibility .16s ease, box-shadow .16s ease;
+}
+
+.sensor-card-right {
+    --sensor-color: #a98bff;
+    left: calc(50% + 482.5px);
+}
+
+.sensor-card-left {
+    right: calc(50% + 482.5px);
+}
+
+.main-content.sensor-monitoring .sensor-card {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.sensor-card.pressed {
+    border-color: var(--sensor-color);
+    box-shadow:
+        inset 0 0 0 1px var(--sensor-color),
+        0 0 28px color-mix(in srgb, var(--sensor-color) 48%, transparent);
+}
+
+body.light-mode .sensor-card {
+    background: rgba(241, 245, 248, 0.9);
+}
+
+.sensor-sensitivity-control {
+    margin: 0 0 10px;
+    padding: 9px 10px 8px;
+    border: 1px solid rgba(127, 140, 141, 0.2);
+    border-radius: 10px;
+    background: rgba(127, 140, 141, 0.07);
+}
+
+.sensor-sensitivity-heading,
+.sensor-sensitivity-scale {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sensor-sensitivity-heading label {
+    color: var(--text-color);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sensor-sensitivity-heading output {
+    min-width: 34px;
+    color: var(--sensor-color);
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.sensor-sensitivity-control input[type="range"] {
+    width: 100%;
+    margin: 7px 0 2px;
+    accent-color: var(--sensor-color);
+    cursor: pointer;
+}
+
+.sensor-sensitivity-control input[type="range"]:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
+.sensor-sensitivity-scale {
+    color: #8293a3;
+    font-size: 9px;
+}
+
+.sensor-sensitivity-status {
+    min-height: 12px;
+    margin: 5px 0 0;
+    color: #8293a3;
+    font-size: 10px;
+    text-align: right;
+}
+
+.sensor-sensitivity-status.saving {
+    color: #f7c948;
+}
+
+.sensor-sensitivity-status.saved {
+    color: #55e893;
+}
+
+.sensor-sensitivity-status.error {
+    color: #ff8378;
+}
+
+.sensor-chart {
+    position: relative;
+    height: 180px;
+    overflow: hidden;
+    border: 1px solid rgba(127, 140, 141, 0.22);
+    border-radius: 11px;
+    background:
+        radial-gradient(circle at 50% 110%, rgba(70, 215, 255, 0.11), transparent 58%),
+        rgba(10, 20, 31, 0.72);
+}
+
+.sensor-card-right .sensor-chart {
+    background:
+        radial-gradient(circle at 50% 110%, rgba(169, 139, 255, 0.13), transparent 58%),
+        rgba(10, 20, 31, 0.72);
+}
+
+body.light-mode .sensor-chart {
+    background: #ffffff;
+}
+
+.sensor-chart svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.sensor-chart-grid {
+    fill: none;
+    stroke: rgba(149, 165, 166, 0.14);
+    stroke-width: 1;
+}
+
+.sensor-threshold-line {
+    vector-effect: non-scaling-stroke;
+    stroke-width: 1.5;
+}
+
+.sensor-press-line {
+    stroke: #ff6f61;
+}
+
+.sensor-release-line {
+    stroke: #f7c948;
+    stroke-dasharray: 6 5;
+}
+
+.sensor-signal-line {
+    fill: none;
+    stroke: var(--sensor-color);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+}
+
+.sensor-signal-area {
+    fill: rgba(70, 215, 255, 0.11);
+    stroke: none;
+}
+
+.sensor-card-right .sensor-signal-area {
+    fill: rgba(169, 139, 255, 0.13);
+}
+
+.sensor-chart-labels {
+    position: absolute;
+    top: 9px;
+    left: 9px;
+    right: 9px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    pointer-events: none;
+}
+
+.sensor-chart-chip {
+    padding: 4px 7px;
+    border: 1px solid rgba(127, 140, 141, 0.25);
+    border-radius: 6px;
+    background: rgba(13, 24, 35, 0.78);
+    color: #cad5df;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    backdrop-filter: blur(5px);
+}
+
+body.light-mode .sensor-chart-chip {
+    background: rgba(255, 255, 255, 0.88);
+    color: #34495e;
+}
+
+.sensor-signal-chip {
+    border-color: var(--sensor-color);
+    color: var(--sensor-color);
+}
+
+.sensor-press-chip {
+    color: #ff8378;
+}
+
+.sensor-release-chip {
+    color: #f7c948;
+}
+
+.sensor-readings {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin: 9px 0 0;
+}
+
+.sensor-readings div {
+    min-width: 0;
+    padding: 7px 8px;
+    border-radius: 8px;
+    background: rgba(127, 140, 141, 0.09);
+}
+
+.sensor-readings dt {
+    color: #8da0b2;
+    font-size: 9px;
+}
+
+.sensor-readings dd {
+    margin: 2px 0 0;
+    overflow: hidden;
+    color: var(--text-color);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 1550px) {
+    .sensor-card {
+        padding: 8px;
+    }
+
+    .sensor-sensitivity-control {
+        padding: 7px 6px;
+    }
+
+    .sensor-sensitivity-scale {
+        display: none;
+    }
+
+    .sensor-chart-labels {
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        gap: 3px;
+    }
+
+    .sensor-chart-chip {
+        padding: 3px 4px;
+        font-size: 8px;
+    }
+
+    .sensor-readings {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
+    }
+}
+
+@media (max-width: 560px) {
+    .sensor-chart {
+        height: 165px;
+    }
+
 }
 
 .keyboard {
@@ -486,6 +939,8 @@ body.light-mode #show-keycode-list-btn:hover {
 }
 
 .key {
+    position: relative;
+    overflow: hidden;
     background-color: var(--key-bg);
     border: 1px solid var(--key-bg-hover);
     border-radius: 10px;
@@ -531,6 +986,7 @@ body.light-mode #show-keycode-list-btn:hover {
     background-color: rgba(0, 0, 0, 0.2);
     opacity: 0.3;
     border-radius: inherit; /* Match the parent's border radius */
+    pointer-events: none;
 }
 
 .key-square {
@@ -1122,4 +1578,4 @@ body.light-mode #custom-confirm-no-btn:hover {
 
 #save-btn:hover {
     background-color: var(--accent-color-btn-hover);
-} 
+}

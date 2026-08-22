@@ -15,18 +15,30 @@
             <button id="reset-key-btn">⌨️重置按键</button>
             <button id="reset-all-btn">💥重置全部</button>
             <h3 id="io-mode-controls-header">IO设置</h3>
-            <div id="io-mode-controls">
+            <div id="io-mode-controls" class="sidebar-setting">
                 <label for="io-light-override-switch">接管IO灯光</label>
                 <label class="switch">
                     <input type="checkbox" id="io-light-override-switch">
                     <span class="slider round"></span>
                 </label>
             </div>
+            <h3>设备通信</h3>
+            <div id="device-mode-controls" class="sidebar-setting">
+                <label for="usb-mode-select">USB模式</label>
+                <select id="usb-mode-select" title="选择写入后使用的USB通信模式">
+                    <option value="1">原始IO（兼容）</option>
+                    <option value="2">IO4（实验）</option>
+                </select>
+            </div>
+            <p class="device-mode-hint">切换模式会在写入配置后重启设备，请重新连接。</p>
+            <h3>固件维护</h3>
+            <button id="firmware-update-btn">⬆️固件更新</button>
+            <p class="device-mode-hint">可通过当前USB连接直接更新，也可进入OTA模式后使用板载页面。</p>
             <h3>其他设置</h3>
             <button id="save-config-btn">💾保存配置</button>
             <button id="load-config-btn">📁载入配置</button>
             <input type="file" id="load-config-input" accept=".json" style="display: none;" title="载入配置">
-            <div id="io-mode-controls">
+            <div id="theme-controls" class="sidebar-setting">
                 <label for="theme-checkbox">🗘切换主题</label>
                 <label class="switch">
                     <input type="checkbox" id="theme-checkbox" />
@@ -53,11 +65,44 @@
             </div>
         </div>
         <div class="header-right">
+            <span id="firmware-version" title="控制器当前运行的固件版本">固件 v--</span>
             <button id="connect-btn">点我连接设备喵</button>
         </div>
     </header>
 
     <main class="main-content">
+        <article class="sensor-card sensor-card-left" data-sensor-side="left">
+                <div class="sensor-sensitivity-control">
+                    <div class="sensor-sensitivity-heading">
+                        <label for="left-sensitivity">灵敏度</label>
+                        <output for="left-sensitivity" data-sensor-field="sensitivity">--</output>
+                    </div>
+                    <input id="left-sensitivity" data-sensor-control="sensitivity" data-sensor-control-side="left"
+                        type="range" min="-30" max="30" step="1" value="0" disabled>
+                    <div class="sensor-sensitivity-scale"><span>更灵敏</span><span>0</span><span>更稳</span></div>
+                    <p class="sensor-sensitivity-status" data-sensor-field="sensitivityStatus" aria-live="polite">等待控制器</p>
+                </div>
+                <div class="sensor-chart" role="img" aria-label="左侧键实时传感信号图表">
+                    <svg viewBox="0 0 600 210" preserveAspectRatio="none" aria-hidden="true">
+                        <path class="sensor-chart-grid" d="M0 42H600 M0 84H600 M0 126H600 M0 168H600"></path>
+                        <line class="sensor-threshold-line sensor-release-line" x1="0" x2="600" y1="168" y2="168"></line>
+                        <line class="sensor-threshold-line sensor-press-line" x1="0" x2="600" y1="126" y2="126"></line>
+                        <path class="sensor-signal-area" d=""></path>
+                        <path class="sensor-signal-line" d=""></path>
+                    </svg>
+                    <div class="sensor-chart-labels">
+                        <span class="sensor-chart-chip sensor-signal-chip" data-sensor-field="signal">信号 --</span>
+                        <span class="sensor-chart-chip sensor-press-chip" data-sensor-field="pressThreshold">触发 --</span>
+                        <span class="sensor-chart-chip sensor-release-chip" data-sensor-field="releaseThreshold">释放 --</span>
+                    </div>
+                </div>
+                <dl class="sensor-readings">
+                    <div><dt>原始</dt><dd data-sensor-field="raw">--</dd></div>
+                    <div><dt>滤波</dt><dd data-sensor-field="filtered">--</dd></div>
+                    <div><dt>自适应基线</dt><dd data-sensor-field="baseline">--</dd></div>
+                </dl>
+        </article>
+
         <div class="keyboard">
             <div class="key key-rect" data-key-id="0"><span></span></div>
             <div class="key-group">
@@ -76,6 +121,38 @@
             <div class="key key-circle key-disabled"><span></span></div>
             <div class="key key-circle" data-key-id="9"><span></span></div>
         </div>
+
+        <article class="sensor-card sensor-card-right" data-sensor-side="right">
+            <div class="sensor-sensitivity-control">
+                <div class="sensor-sensitivity-heading">
+                    <label for="right-sensitivity">灵敏度</label>
+                    <output for="right-sensitivity" data-sensor-field="sensitivity">--</output>
+                </div>
+                <input id="right-sensitivity" data-sensor-control="sensitivity" data-sensor-control-side="right"
+                    type="range" min="-30" max="30" step="1" value="0" disabled>
+                <div class="sensor-sensitivity-scale"><span>更灵敏</span><span>0</span><span>更稳</span></div>
+                <p class="sensor-sensitivity-status" data-sensor-field="sensitivityStatus" aria-live="polite">等待控制器</p>
+            </div>
+            <div class="sensor-chart" role="img" aria-label="右侧键实时传感信号图表">
+                <svg viewBox="0 0 600 210" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="sensor-chart-grid" d="M0 42H600 M0 84H600 M0 126H600 M0 168H600"></path>
+                    <line class="sensor-threshold-line sensor-release-line" x1="0" x2="600" y1="168" y2="168"></line>
+                    <line class="sensor-threshold-line sensor-press-line" x1="0" x2="600" y1="126" y2="126"></line>
+                    <path class="sensor-signal-area" d=""></path>
+                    <path class="sensor-signal-line" d=""></path>
+                </svg>
+                <div class="sensor-chart-labels">
+                    <span class="sensor-chart-chip sensor-signal-chip" data-sensor-field="signal">信号 --</span>
+                    <span class="sensor-chart-chip sensor-press-chip" data-sensor-field="pressThreshold">触发 --</span>
+                    <span class="sensor-chart-chip sensor-release-chip" data-sensor-field="releaseThreshold">释放 --</span>
+                </div>
+            </div>
+            <dl class="sensor-readings">
+                <div><dt>原始</dt><dd data-sensor-field="raw">--</dd></div>
+                <div><dt>滤波</dt><dd data-sensor-field="filtered">--</dd></div>
+                <div><dt>自适应基线</dt><dd data-sensor-field="baseline">--</dd></div>
+            </dl>
+        </article>
     </main>
 
     <div id="config-modal" class="modal-container" style="display: none;">
@@ -102,6 +179,29 @@
                 <button id="toggle-input-mode-btn" title="切换输入模式">⇄</button>
             </div>
             <button id="save-btn">保存更改 ✔️</button>
+        </div>
+    </div>
+
+    <div id="firmware-update-modal" class="modal-container" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>固件更新</h2>
+                <span class="firmware-update-close-btn" aria-label="关闭">&times;</span>
+            </div>
+            <p class="firmware-update-description">USB更新需要先连接设备。可直接选择仓库中的正式固件，传输和校验期间请勿断电。</p>
+            <label class="firmware-source-label" for="firmware-release-select">仓库固件</label>
+            <select id="firmware-release-select" disabled>
+                <option value="">正在读取可用版本…</option>
+            </select>
+            <p id="firmware-release-info" aria-live="polite">正在读取固件目录…</p>
+            <div class="firmware-update-divider"><span>或选择本地固件</span></div>
+            <input id="firmware-file-input" type="file" accept=".bin,application/octet-stream" title="选择固件">
+            <progress id="firmware-update-progress" value="0" max="100"></progress>
+            <p id="firmware-update-status" aria-live="polite">请选择仓库版本或本地固件。</p>
+            <button id="firmware-upload-btn">通过USB上传</button>
+            <div class="firmware-update-divider"><span>备用方式</span></div>
+            <a id="embedded-ota-link" class="firmware-update-link" href="http://10.10.10.1/" target="_blank" rel="noopener noreferrer">打开板载Wi-Fi上传页</a>
+            <p class="firmware-update-hint">Wi-Fi方式：持续按住FUNC上电，等待5秒校准结束并进入OTA模式，连接开放热点PGEKI2后再打开。旧固件首次升级也请使用此方式。</p>
         </div>
     </div>
 
@@ -280,4 +380,4 @@
 
     <script inline src="./script.js"></script>
 </body>
-</html> 
+</html>

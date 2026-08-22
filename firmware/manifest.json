@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "minimumVersion": "1.0.0",
+  "firmware": [
+    {
+      "name": "PGEKI2",
+      "version": "1.0.0",
+      "path": "1.0.0/PGEKI2_ESP32.bin",
+      "size": 934992,
+      "sha256": "d9e83f0a66f0e045a371518bdce50ead3e8ede6bf4048501a18ed0245a9d750e",
+      "notes": "首个公开更新版本"
+    }
+  ]
+}
