@@ -380,7 +380,17 @@ input:checked + .slider:before {
     top: calc(50% + 192px);
     left: 50%;
     width: min(780px, calc(100% - 36px));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
     transform: translateX(-50%);
+    transition: opacity .16s ease, visibility .16s ease;
+}
+
+.main-content.sensor-monitoring .action-controls-main {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .action-controls h3 {
