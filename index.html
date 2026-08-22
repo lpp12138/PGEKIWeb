@@ -65,6 +65,7 @@
             </div>
         </div>
         <div class="header-right">
+            <span id="firmware-version" title="控制器当前运行的固件版本">固件 v--</span>
             <button id="connect-btn">点我连接设备喵</button>
         </div>
     </header>
@@ -187,12 +188,18 @@
                 <h2>固件更新</h2>
                 <span class="firmware-update-close-btn" aria-label="关闭">&times;</span>
             </div>
-            <p class="firmware-update-description">USB更新需要先连接设备。请选择PGEKI2应用固件，传输和校验期间请勿断电。</p>
+            <p class="firmware-update-description">USB更新需要先连接设备。可直接选择仓库中的正式固件，传输和校验期间请勿断电。</p>
+            <label class="firmware-source-label" for="firmware-release-select">仓库固件</label>
+            <select id="firmware-release-select" disabled>
+                <option value="">正在读取可用版本…</option>
+            </select>
+            <p id="firmware-release-info" aria-live="polite">正在读取固件目录…</p>
+            <div class="firmware-update-divider"><span>或选择本地固件</span></div>
             <input id="firmware-file-input" type="file" accept=".bin,application/octet-stream" title="选择固件">
             <progress id="firmware-update-progress" value="0" max="100"></progress>
-            <p id="firmware-update-status" aria-live="polite">等待选择固件。</p>
+            <p id="firmware-update-status" aria-live="polite">请选择仓库版本或本地固件。</p>
             <button id="firmware-upload-btn">通过USB上传</button>
-            <div class="firmware-update-divider"><span>或</span></div>
+            <div class="firmware-update-divider"><span>备用方式</span></div>
             <a id="embedded-ota-link" class="firmware-update-link" href="http://10.10.10.1/" target="_blank" rel="noopener noreferrer">打开板载Wi-Fi上传页</a>
             <p class="firmware-update-hint">Wi-Fi方式：持续按住FUNC上电，等待5秒校准结束并进入OTA模式，连接开放热点PGEKI2后再打开。旧固件首次升级也请使用此方式。</p>
         </div>

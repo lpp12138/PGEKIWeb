@@ -377,6 +377,16 @@ input:checked + .slider:before {
     gap: 10px;
 }
 
+#firmware-version {
+    min-width: 76px;
+    color: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    opacity: 0.8;
+}
+
 .profiles {
     display: flex;
     gap: 10px;
@@ -514,12 +524,38 @@ body.light-mode #show-keycode-list-btn:hover {
 
 .firmware-update-description,
 .firmware-update-hint,
+#firmware-release-info,
 #firmware-update-status {
     line-height: 1.55;
 }
 
 .firmware-update-hint {
     margin: 12px 0 0;
+    color: #95a5a6;
+    font-size: 12px;
+}
+
+.firmware-source-label {
+    display: block;
+    margin: 12px 0 6px;
+    color: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#firmware-release-select {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background: var(--input-bg);
+    color: var(--input-text);
+}
+
+#firmware-release-info {
+    min-height: 1.55em;
+    margin: 6px 0 0;
     color: #95a5a6;
     font-size: 12px;
 }
@@ -565,7 +601,8 @@ body.light-mode #show-keycode-list-btn:hover {
     background: var(--accent-color-btn-hover);
 }
 
-#firmware-upload-btn:disabled {
+#firmware-upload-btn:disabled,
+#firmware-release-select:disabled {
     opacity: .55;
     cursor: not-allowed;
 }

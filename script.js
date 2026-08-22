@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ioLightOverrideSwitch = document.getElementById('io-light-override-switch');
     const usbModeSelect = document.getElementById('usb-mode-select');
     const connectBtn = document.getElementById('connect-btn');
+    const firmwareVersion = document.getElementById('firmware-version');
     const mainContent = document.querySelector('.main-content');
     const modalContainer = document.getElementById('config-modal');
     const closeBtn = document.querySelector('.close-btn');
@@ -24,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const firmwareUpdateBtn = document.getElementById('firmware-update-btn');
     const firmwareUpdateModal = document.getElementById('firmware-update-modal');
     const firmwareUpdateCloseBtn = firmwareUpdateModal.querySelector('.firmware-update-close-btn');
+    const firmwareReleaseSelect = document.getElementById('firmware-release-select');
+    const firmwareReleaseInfo = document.getElementById('firmware-release-info');
     const firmwareFileInput = document.getElementById('firmware-file-input');
     const firmwareUploadBtn = document.getElementById('firmware-upload-btn');
     const firmwareUpdateProgress = document.getElementById('firmware-update-progress');
@@ -73,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEB_OTA_STATUS_COMPLETE = 0x01;
     const WEB_OTA_DATA_SIZE = 57;
     const WEB_OTA_MAXIMUM_IMAGE_SIZE = 2 * 1024 * 1024;
+    const FIRMWARE_CATALOG_MINIMUM_VERSION = Object.freeze([1, 0, 0]);
     const SENSOR_TELEMETRY_MAGIC = Object.freeze([0x53, 0x54]);
     const SENSOR_TELEMETRY_PROTOCOL_VERSION = 1;
     const SENSOR_TELEMETRY_POLL_INTERVAL_MS = 50;
@@ -114,6 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let keydownListener = null;
     let otaUploadActive = false;
     let otaAckWaiter = null;
+    let firmwareCatalogEntries = [];
+    let firmwareCatalogLoadPromise = null;
     let sensorTelemetryTimer = null;
     let sensorTelemetryGeneration = 0;
     let sensorTelemetrySupported = false;
@@ -404,6 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error('传感遥测协议不兼容');
         }
         const flags = data.getUint8(payloadOffset + 3);
+        const versionComponents = data.byteLength >= payloadOffset + 63 ? [
+            data.getUint8(payloadOffset + 60),
+            data.getUint8(payloadOffset + 61),
+            data.getUint8(payloadOffset + 62),
+        ] : null;
         return {
             left: readTelemetrySide(data, payloadOffset + 8,
                 data.getUint8(payloadOffset + 4),
@@ -414,7 +425,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 data.getInt8(payloadOffset + 7),
                 Boolean(flags & 0x04), Boolean(flags & 0x08)),
             sequence: data.getUint32(payloadOffset + 56, true),
+            firmwareVersion: versionComponents && versionComponents.some(Boolean) ?
+                versionComponents.join('.') : null,
         };
+    }
+
+    function renderFirmwareVersion(version) {
+        const text = version ? `固件 v${version}` : '固件 v--';
+        if (firmwareVersion.textContent !== text) firmwareVersion.textContent = text;
     }
 
     function formatSensorValue(value) {
@@ -643,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (generation !== sensorTelemetryGeneration) return;
             const telemetry = decodeSensorTelemetry(data);
             sensorTelemetrySupported = true;
+            renderFirmwareVersion(telemetry.firmwareVersion);
             renderSensorSide('left', telemetry.left);
             renderSensorSide('right', telemetry.right);
             scheduleSensorTelemetryPoll(generation,
@@ -714,6 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     //console.log('设备已断开连接喵！');
                     hidDevice = null;
                     connectedUsbMode = null;
+                    renderFirmwareVersion(null);
                     updateButtonStates(Array(10).fill(false));
                     setConnectButtonState(false);
                 }
@@ -940,6 +960,171 @@ document.addEventListener('DOMContentLoaded', () => {
         return report;
     }
 
+    function parseFirmwareVersion(version) {
+        const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+        return match ? match.slice(1).map(Number) : null;
+    }
+
+    function compareFirmwareVersions(left, right) {
+        for (let index = 0; index < 3; index++) {
+            if (left[index] !== right[index]) return left[index] - right[index];
+        }
+        return 0;
+    }
+
+    function getFirmwareAssetBaseUrl() {
+        const pageDirectory = new URL('.', window.location.href);
+        return pageDirectory.pathname.endsWith('/min/')
+            ? new URL('../firmware/', pageDirectory)
+            : new URL('./firmware/', pageDirectory);
+    }
+
+    function resolveFirmwareAssetUrl(path) {
+        if (typeof path !== 'string' || !path || path.includes('\\') ||
+            path.startsWith('/') || path.split('/').includes('..')) {
+            throw new Error('固件目录包含无效路径');
+        }
+        const baseUrl = getFirmwareAssetBaseUrl();
+        const assetUrl = new URL(path, baseUrl);
+        if (!assetUrl.href.startsWith(baseUrl.href)) {
+            throw new Error('固件目录包含越界路径');
+        }
+        return assetUrl.href;
+    }
+
+    function formatFirmwareSize(size) {
+        return `${(size / 1024).toFixed(size >= 1024 * 1024 ? 1 : 0)} KiB`;
+    }
+
+    function validateFirmwareCatalogEntry(entry) {
+        const versionParts = entry && parseFirmwareVersion(entry.version);
+        if (!versionParts || compareFirmwareVersions(
+            versionParts, FIRMWARE_CATALOG_MINIMUM_VERSION) < 0) return null;
+        if (!Number.isInteger(entry.size) || entry.size <= 0 ||
+            entry.size > WEB_OTA_MAXIMUM_IMAGE_SIZE ||
+            !/^[0-9a-f]{64}$/i.test(entry.sha256 || '')) return null;
+        let url;
+        try {
+            url = resolveFirmwareAssetUrl(entry.path);
+        } catch (_) {
+            return null;
+        }
+        return {
+            version: entry.version,
+            versionParts,
+            name: typeof entry.name === 'string' && entry.name ? entry.name : 'PGEKI2',
+            notes: typeof entry.notes === 'string' ? entry.notes : '',
+            size: entry.size,
+            sha256: entry.sha256.toLowerCase(),
+            url,
+        };
+    }
+
+    function updateFirmwareReleaseInfo() {
+        const release = firmwareCatalogEntries.find(
+            entry => entry.version === firmwareReleaseSelect.value);
+        if (!release) {
+            firmwareReleaseInfo.textContent = firmwareCatalogEntries.length
+                ? '请选择一个仓库固件版本，或上传本地 .bin 文件。'
+                : '仓库固件暂不可用，仍可选择本地 .bin 文件。';
+            return;
+        }
+        const notes = release.notes ? ` · ${release.notes}` : '';
+        firmwareReleaseInfo.textContent =
+            `${release.name} v${release.version} · ${formatFirmwareSize(release.size)}${notes}`;
+    }
+
+    function renderFirmwareCatalog(entries) {
+        firmwareCatalogEntries = entries;
+        firmwareReleaseSelect.replaceChildren();
+        if (!entries.length) {
+            firmwareReleaseSelect.append(new Option('没有可用的仓库固件', ''));
+            firmwareReleaseSelect.disabled = true;
+            updateFirmwareReleaseInfo();
+            return;
+        }
+        for (const entry of entries) {
+            firmwareReleaseSelect.append(new Option(
+                `${entry.name} v${entry.version}`, entry.version));
+        }
+        const hasLocalFile = Boolean(firmwareFileInput.files[0]);
+        firmwareReleaseSelect.disabled = otaUploadActive;
+        firmwareReleaseSelect.value = hasLocalFile ? '' : entries[0].version;
+        updateFirmwareReleaseInfo();
+        if (!hasLocalFile) {
+            firmwareUpdateStatus.textContent = `已选择仓库固件 v${entries[0].version}。`;
+        }
+    }
+
+    async function loadFirmwareCatalog() {
+        if (firmwareCatalogLoadPromise) return firmwareCatalogLoadPromise;
+        firmwareCatalogLoadPromise = (async () => {
+            firmwareReleaseSelect.disabled = true;
+            try {
+                const manifestUrl = new URL('manifest.json', getFirmwareAssetBaseUrl());
+                const response = await fetch(manifestUrl, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const manifest = await response.json();
+                if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.firmware)) {
+                    throw new Error('固件目录格式不受支持');
+                }
+                const entries = manifest.firmware
+                    .map(validateFirmwareCatalogEntry)
+                    .filter(Boolean)
+                    .sort((left, right) =>
+                        compareFirmwareVersions(right.versionParts, left.versionParts));
+                renderFirmwareCatalog(entries);
+            } catch (error) {
+                renderFirmwareCatalog([]);
+                firmwareReleaseInfo.textContent = `读取仓库固件失败：${error.message}`;
+                firmwareCatalogLoadPromise = null;
+            }
+        })();
+        return firmwareCatalogLoadPromise;
+    }
+
+    function validateFirmwareImage(firmware) {
+        if (!firmware.length || firmware.length > WEB_OTA_MAXIMUM_IMAGE_SIZE) {
+            throw new Error('固件大小必须在1字节到2 MiB之间');
+        }
+        if (firmware[0] !== 0xE9) throw new Error('文件不是有效的ESP应用固件');
+    }
+
+    async function sha256Hex(bytes) {
+        if (!window.crypto || !window.crypto.subtle) {
+            throw new Error('当前浏览器不支持仓库固件完整性校验');
+        }
+        const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest), value =>
+            value.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function readSelectedFirmware() {
+        const localFile = firmwareFileInput.files[0];
+        if (localFile) {
+            if (!/\.bin$/i.test(localFile.name)) throw new Error('本地固件必须是 .bin 文件');
+            firmwareUpdateStatus.textContent = `正在读取 ${localFile.name}…`;
+            const firmware = new Uint8Array(await localFile.arrayBuffer());
+            validateFirmwareImage(firmware);
+            return firmware;
+        }
+
+        const release = firmwareCatalogEntries.find(
+            entry => entry.version === firmwareReleaseSelect.value);
+        if (!release) throw new Error('请先选择仓库版本或本地固件文件');
+        firmwareUpdateStatus.textContent = `正在下载仓库固件 v${release.version}…`;
+        const response = await fetch(release.url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`下载固件失败：HTTP ${response.status}`);
+        const firmware = new Uint8Array(await response.arrayBuffer());
+        if (firmware.length !== release.size) throw new Error('仓库固件大小校验失败');
+        validateFirmwareImage(firmware);
+        firmwareUpdateStatus.textContent = `正在校验仓库固件 v${release.version}…`;
+        if (await sha256Hex(firmware) !== release.sha256) {
+            throw new Error('仓库固件SHA-256校验失败');
+        }
+        return firmware;
+    }
+
     async function abortWebOta() {
         if (!hidDevice || !hidDevice.opened) return;
         const deviceDefinition = findDeviceDefinition(hidDevice);
@@ -954,6 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setOtaControlsBusy(isBusy) {
         otaUploadActive = isBusy;
+        firmwareReleaseSelect.disabled = isBusy || !firmwareCatalogEntries.length;
         firmwareFileInput.disabled = isBusy;
         firmwareUploadBtn.disabled = isBusy;
         firmwareUpdateCloseBtn.style.visibility = isBusy ? 'hidden' : 'visible';
@@ -965,27 +1151,11 @@ document.addEventListener('DOMContentLoaded', () => {
             firmwareUpdateStatus.textContent = '请先点击右上角连接设备，再开始USB更新。';
             return;
         }
-        const file = firmwareFileInput.files[0];
-        if (!file) {
-            firmwareUpdateStatus.textContent = '请先选择固件文件。';
-            return;
-        }
-        if (!/\.bin$/i.test(file.name) || file.size === 0 ||
-            file.size > WEB_OTA_MAXIMUM_IMAGE_SIZE) {
-            firmwareUpdateStatus.textContent = '请选择不超过2 MiB的有效 .bin 应用固件。';
-            return;
-        }
-
-        const firmware = new Uint8Array(await file.arrayBuffer());
-        if (firmware[0] !== 0xE9) {
-            firmwareUpdateStatus.textContent = '文件不是有效的ESP应用固件。';
-            return;
-        }
-
         setOtaControlsBusy(true);
         firmwareUpdateProgress.value = 0;
         let transferStarted = false;
         try {
+            const firmware = await readSelectedFirmware();
             const beginReport = createWebOtaReport(WEB_OTA_COMMANDS.BEGIN);
             beginReport[3] = WEB_OTA_PROTOCOL_VERSION;
             setUint32LittleEndian(beginReport, 4, firmware.length);
@@ -1446,11 +1616,26 @@ document.addEventListener('DOMContentLoaded', () => {
     loadConfigInput.addEventListener('change', handleLoadFromFile);
     firmwareUpdateBtn.addEventListener('click', () => {
         firmwareUpdateModal.style.display = 'flex';
+        loadFirmwareCatalog();
     });
     firmwareUpdateCloseBtn.addEventListener('click', () => {
         if (!otaUploadActive) firmwareUpdateModal.style.display = 'none';
     });
     firmwareUploadBtn.addEventListener('click', handleFirmwareUpload);
+    firmwareReleaseSelect.addEventListener('change', () => {
+        if (firmwareReleaseSelect.value) firmwareFileInput.value = '';
+        updateFirmwareReleaseInfo();
+        if (firmwareReleaseSelect.value) {
+            firmwareUpdateStatus.textContent =
+                `已选择仓库固件 v${firmwareReleaseSelect.value}。`;
+        }
+    });
+    firmwareFileInput.addEventListener('change', () => {
+        if (!firmwareFileInput.files[0]) return;
+        firmwareReleaseSelect.value = '';
+        updateFirmwareReleaseInfo();
+        firmwareUpdateStatus.textContent = `已选择本地固件 ${firmwareFileInput.files[0].name}。`;
+    });
     ioLightOverrideSwitch.addEventListener('change', handleIoLightSwitchChange);
     usbModeSelect.addEventListener('change', () => setSelectedUsbMode(Number(usbModeSelect.value)));
     for (const sideName of ['left', 'right']) {
