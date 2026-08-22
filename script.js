@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ioModeControls = document.getElementById('io-mode-controls');
     const ioModeControlsHeader = document.getElementById('io-mode-controls-header');
     const ioLightOverrideSwitch = document.getElementById('io-light-override-switch');
+    const deviceModeControls = document.getElementById('device-mode-controls');
+    const deviceModeControlsHeader = document.getElementById('device-mode-controls-header');
+    const deviceModeHint = document.getElementById('device-mode-hint');
     const usbModeSelect = document.getElementById('usb-mode-select');
     const connectBtn = document.getElementById('connect-btn');
     const firmwareVersion = document.getElementById('firmware-version');
@@ -1250,12 +1253,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (profileIndex === 0) {
             ioModeControls.style.display = 'flex';
             ioModeControlsHeader.style.display = 'block';
+            deviceModeControls.style.display = 'flex';
+            deviceModeControlsHeader.style.display = 'block';
+            deviceModeHint.style.display = 'block';
             // Set the switch state from profile data
             const config = profiles[0] || {};
             ioLightOverrideSwitch.checked = !!config.ioLightOverride;
         } else {
             ioModeControls.style.display = 'none';
             ioModeControlsHeader.style.display = 'none';
+            deviceModeControls.style.display = 'none';
+            deviceModeControlsHeader.style.display = 'none';
+            deviceModeHint.style.display = 'none';
         }
 
         updateKeyAppearances();
@@ -1354,8 +1363,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const targetUsbMode = Number(usbModeSelect.value) === USB_MODES.IO4
+        const selectedIoUsbMode = Number(usbModeSelect.value) === USB_MODES.IO4
             ? USB_MODES.IO4
+            : USB_MODES.RAW_IO;
+        const targetUsbMode = currentProfile === 0
+            ? selectedIoUsbMode
             : USB_MODES.RAW_IO;
         const reportId = deviceDefinition.outputReportId;
         const data = new Uint8Array(63);
@@ -1387,7 +1399,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // The byte for the flag is now after the 10 key configs. 2 + (10*4) = 42.
             data[42] = config.ioLightOverride ? 1 : 0;
         }
-        data[43] = targetUsbMode;
+        // USB mode belongs to profile 0 only. A zero value asks the firmware to
+        // preserve that setting while profiles 1..5 run as RAW keyboard/mouse.
+        data[43] = currentProfile === 0 ? selectedIoUsbMode : 0;
 
         // --- 调试日志 ---
         //console.log('--- 准备发送HID报告 ---');
@@ -1399,7 +1413,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await hidDevice.sendReport(reportId, data);
-            setSelectedUsbMode(targetUsbMode);
+            if (currentProfile === 0) {
+                setSelectedUsbMode(selectedIoUsbMode);
+            }
             if (targetUsbMode !== connectedUsbMode) {
                 showCustomAlert('配置已写入，设备将切换USB模式并重启。请等待设备重新出现后再次连接。');
             } else {

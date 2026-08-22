@@ -4,6 +4,14 @@
   "firmware": [
     {
       "name": "PGEKI2",
+      "version": "1.0.1",
+      "path": "1.0.1/PGEKI2_ESP32.bin",
+      "size": 935088,
+      "sha256": "ac514c68db319609fd6cb40b58cb29f588573b6d5f39f3740ee60652591f45d6",
+      "notes": "配置槽0独立保存RAW/IO4模式，IO4可切换到槽位1到5的RAW键鼠复合模式"
+    },
+    {
+      "name": "PGEKI2",
       "version": "1.0.0",
       "path": "1.0.0/PGEKI2_ESP32.bin",
       "size": 934992,
