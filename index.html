@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGEKI Web Configurator</title>
-    <link inline rel="stylesheet" href="./style.css?v=1.0.0">
+    <link inline rel="stylesheet" href="./style.css?v=1.0.1">
 </head>
 <body>
     <div id="sidebar" class="collapsed">
@@ -22,7 +22,7 @@
                     <span class="slider round"></span>
                 </label>
             </div>
-            <h3>设备通信</h3>
+            <h3 id="device-mode-controls-header">设备通信</h3>
             <div id="device-mode-controls" class="sidebar-setting">
                 <label for="usb-mode-select">USB模式</label>
                 <select id="usb-mode-select" title="选择写入后使用的USB通信模式">
@@ -30,7 +30,7 @@
                     <option value="2">IO4（实验）</option>
                 </select>
             </div>
-            <p class="device-mode-hint">切换模式会在写入配置后重启设备，请重新连接。</p>
+            <p id="device-mode-hint" class="device-mode-hint">切换模式会在写入配置后重启设备，请重新连接。</p>
             <h3>固件维护</h3>
             <button id="firmware-update-btn">⬆️固件更新</button>
             <p class="device-mode-hint">可通过当前USB连接直接更新，也可进入OTA模式后使用板载页面。</p>
@@ -378,6 +378,6 @@
         </div>
     </div>
 
-    <script inline src="./script.js?v=1.0.0"></script>
+    <script inline src="./script.js?v=1.0.1"></script>
 </body>
 </html>
