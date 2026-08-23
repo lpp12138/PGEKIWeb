@@ -85,15 +85,6 @@ body.sidebar-collapsed {
     padding-left: 60px;
 }
 
-body.light-mode {
-    background-color: #ecf0f1;
-    color: #2c3e50;
-}
-
-body.light-mode .header {
-    /* No longer need a separate background color here */
-}
-
 body.light-mode .key {
     background-color: var(--key-bg);
     border: 1px solid var(--key-shadow);
@@ -112,20 +103,8 @@ body.light-mode .key.pressed::after {
     background-color: rgba(0,0,0,0.2); /* Keep this as a specific value for the overlay */
 }
 
-body.light-mode .key-disabled {
-    background-color: var(--key-disabled-bg);
-    box-shadow: 0 4px var(--key-disabled-shadow);
-}
-body.light-mode .key-disabled:hover, body.light-mode .key-disabled:active {
-    box-shadow: 0 4px var(--key-disabled-shadow);
-}
-
 body.light-mode #sidebar {
     background-color: var(--sidebar-bg);
-}
-
-body.light-mode .sidebar-content h3 {
-    color: var(--text-color);
 }
 
 body.light-mode #sidebar-toggle {
@@ -1356,11 +1335,16 @@ body.light-mode .sensor-chart-chip {
 
 .modal-content {
     background-color: var(--modal-content-bg);
-    padding: 20px 25px;
-    border-radius: 10px;
-    width: 320px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    color: var(--text-color);
+    width: 350px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
     position: absolute;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .modal-buttons {
@@ -1614,18 +1598,6 @@ body.light-mode .header-separator {
     box-shadow: 0 4px var(--key-disabled-shadow);
 }
 
-.key.pressed::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.2);
-    opacity: 0.3;
-    border-radius: inherit; /* Match the parent's border radius */
-}
-
 .key-disabled.pressed::after {
     content: none;
 }
@@ -1783,22 +1755,6 @@ body.light-mode .keycode-entry .code {
 #config-modal .modal-content {
     position: absolute;
     /* top and left will be set by JS */
-}
-
-/* Key config modal content */
-.modal-content {
-    /* This rule is intentionally left for other .modal-content elements if any, */
-    /* but the primary config modal is handled by the ID selector above. */
-    background-color: var(--modal-content-bg);
-    color: var(--text-color);
-    padding: 20px;
-    border-radius: 8px;
-    width: 350px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
 }
 
 /* --- Custom Alert/Confirm Modals --- */

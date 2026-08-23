@@ -598,6 +598,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const SENSOR_TELEMETRY_MAGIC = Object.freeze([0x53, 0x54]);
     const SENSOR_TELEMETRY_PROTOCOL_VERSION = 1;
     const SENSOR_TELEMETRY_POLL_INTERVAL_MS = 50;
+    const SENSOR_TELEMETRY_RETRY_BASE_INTERVAL_MS = 500;
+    const SENSOR_TELEMETRY_RETRY_MAX_INTERVAL_MS = 5000;
     const SENSOR_TELEMETRY_HISTORY_POINTS = 120;
     const SENSOR_CHART_WIDTH = 600;
     const SENSOR_CHART_HEIGHT = 210;
@@ -659,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let sensorTelemetryTimer = null;
     let sensorTelemetryGeneration = 0;
     let sensorTelemetrySupported = false;
+    let sensorTelemetryFailureCount = 0;
     let sensorSensitivityWriteInProgress = false;
     let actionTelemetrySupported = false;
     let currentActionStatus = null;
@@ -1445,6 +1448,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sensorTelemetryTimer !== null) clearTimeout(sensorTelemetryTimer);
         sensorTelemetryTimer = null;
         sensorTelemetrySupported = false;
+        sensorTelemetryFailureCount = 0;
         mainContent.classList.remove('sensor-monitoring');
         resetSensorMonitor();
         renderLeverPosition(null);
@@ -1482,6 +1486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (generation !== sensorTelemetryGeneration) return;
             const telemetry = decodeSensorTelemetry(data);
             sensorTelemetrySupported = true;
+            sensorTelemetryFailureCount = 0;
             renderFirmwareVersion(telemetry.firmwareVersion);
             renderActionStatus(telemetry.action);
             renderSensorSide('left', telemetry.left);
@@ -1496,6 +1501,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 setSensitivityStatus(sideName, 'sensor.unsupported', 'error');
             }
             refreshSensitivityControls();
+            sensorTelemetryFailureCount++;
+            const retryDelayMs = Math.min(
+                SENSOR_TELEMETRY_RETRY_MAX_INTERVAL_MS,
+                SENSOR_TELEMETRY_RETRY_BASE_INTERVAL_MS *
+                    (2 ** Math.min(sensorTelemetryFailureCount - 1, 4)),
+            );
+            scheduleSensorTelemetryPoll(generation, retryDelayMs);
         }
     }
 
