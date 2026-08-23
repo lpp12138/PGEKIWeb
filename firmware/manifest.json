@@ -4,6 +4,18 @@
   "firmware": [
     {
       "name": "PGEKI2",
+      "version": "1.2.1",
+      "path": "1.2.1/PGEKI2_ESP32.bin",
+      "size": 1179696,
+      "sha256": "2110d0b6cbfbe2e08ba50898c1d6bec50e66d434574a04361da778835a340532",
+      "notes": "录制改为约4 KiB分块异步写入，修复启用蓝牙后的录制内存不足与残留忙状态",
+      "notesI18n": {
+        "zh-CN": "录制改为约4 KiB分块异步写入，修复启用蓝牙后的录制内存不足与残留忙状态",
+        "en": "Streams recordings asynchronously in roughly 4 KiB chunks, fixing recording allocation failures with Bluetooth enabled and stale busy status"
+      }
+    },
+    {
+      "name": "PGEKI2",
       "version": "1.2.0",
       "path": "1.2.0/PGEKI2_ESP32.bin",
       "size": 1179728,
