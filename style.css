@@ -1922,8 +1922,8 @@ body.light-mode #custom-confirm-no-btn:hover {
     background-color: var(--accent-color-btn-hover);
 }
 
-/* Compact, scroll-safe layout for phones and portrait tablets. */
-@media (max-width: 900px) {
+/* Flow the side monitors below the controller until the desktop layout fits. */
+@media (max-width: 1220px) {
     body,
     body.sidebar-collapsed {
         box-sizing: border-box;
