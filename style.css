@@ -1921,3 +1921,396 @@ body.light-mode #custom-confirm-no-btn:hover {
 #save-btn:hover {
     background-color: var(--accent-color-btn-hover);
 }
+
+/* Compact, scroll-safe layout for phones and portrait tablets. */
+@media (max-width: 900px) {
+    body,
+    body.sidebar-collapsed {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 100vh;
+        min-height: 100dvh;
+        height: auto;
+        padding-left: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    #sidebar {
+        width: min(82vw, 320px);
+        height: 100vh;
+        height: 100dvh;
+        padding: 16px;
+    }
+
+    .sidebar-content {
+        margin-top: 46px;
+    }
+
+    .sidebar-content h3 {
+        margin: 0 0 10px;
+        padding: 16px 10px;
+    }
+
+    #sidebar-toggle,
+    body:not(.sidebar-collapsed) #sidebar-toggle,
+    body.sidebar-collapsed #sidebar-toggle {
+        top: 12px;
+        left: 12px;
+        width: 44px;
+        height: 44px;
+        transform: none;
+    }
+
+    .header {
+        flex: 0 0 auto;
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 0;
+        padding: 16px 16px 12px 68px;
+        gap: 16px;
+    }
+
+    .header-left,
+    .header-right {
+        min-width: 0;
+    }
+
+    .profiles {
+        gap: 8px;
+    }
+
+    .profile-slot {
+        flex: 0 0 40px;
+    }
+
+    .main-content {
+        --mobile-key-gap: clamp(3px, 1vw, 5px);
+        --mobile-key-size: min(72px, calc(12.5vw - 9.5px));
+        flex: 1 0 auto;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 0;
+        padding: 26px 16px 40px;
+        gap: 16px;
+    }
+
+    .lever-monitor {
+        order: 1;
+        width: clamp(210px, 55vw, 300px);
+    }
+
+    .keyboard {
+        order: 2;
+        justify-content: center;
+        width: 100%;
+        gap: var(--mobile-key-gap);
+    }
+
+    .key-group {
+        gap: var(--mobile-key-gap);
+    }
+
+    .key-square,
+    .key-rect {
+        flex: 0 0 var(--mobile-key-size);
+        width: var(--mobile-key-size);
+    }
+
+    .key-square {
+        height: var(--mobile-key-size);
+    }
+
+    .key-rect {
+        height: calc(var(--mobile-key-size) + var(--mobile-key-size) + var(--mobile-key-gap));
+    }
+
+    .key-separator {
+        flex: 0 0 2px;
+        width: 2px;
+        height: clamp(20px, 5vw, 36px);
+    }
+
+    .key span {
+        font-size: clamp(.72em, 2.5vw, 1.35em);
+    }
+
+    .small-keys-container {
+        order: 3;
+        gap: 12px;
+    }
+
+    .key-circle {
+        width: clamp(38px, 10vw, 46px);
+        height: clamp(38px, 10vw, 46px);
+    }
+
+    .action-controls-main {
+        position: relative;
+        top: auto;
+        left: auto;
+        order: 4;
+        display: none;
+        width: min(100%, 560px);
+        opacity: 0;
+        visibility: hidden;
+        transform: none;
+    }
+
+    .main-content.controller-connected .action-controls-main {
+        display: block;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .action-control-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px 14px;
+    }
+
+    .action-button-grid {
+        grid-column: 1 / -1;
+    }
+
+    .sensor-card {
+        position: relative;
+        top: auto;
+        right: auto;
+        left: auto;
+        order: 5;
+        display: none;
+        width: min(100%, 480px);
+        padding: 12px;
+        opacity: 0;
+        visibility: hidden;
+        transform: none;
+    }
+
+    .sensor-card-right {
+        order: 6;
+    }
+
+    .main-content.sensor-monitoring .sensor-card {
+        display: block;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .sensor-chart {
+        height: 160px;
+    }
+
+    .sensor-readings {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .modal-container {
+        box-sizing: border-box;
+        height: 100vh;
+        height: 100dvh;
+        padding: 16px;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .modal-content,
+    #config-modal .modal-content,
+    #firmware-update-modal .modal-content,
+    .connection-method-content {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        box-sizing: border-box;
+        width: min(100%, 440px);
+        max-height: calc(100dvh - 32px);
+        padding: 16px;
+        overflow-y: auto;
+    }
+
+    .connection-method-close-btn,
+    .firmware-update-close-btn,
+    .close-btn,
+    .keycode-modal-close-btn {
+        box-sizing: border-box;
+        display: inline-flex;
+        flex: 0 0 44px;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        margin: -8px -8px -8px 0;
+        padding: 0;
+        cursor: pointer;
+        font-size: 28px;
+        line-height: 1;
+    }
+
+    .modal-header h2,
+    .keycode-modal-header h2 {
+        min-width: 0;
+    }
+
+    .keycode-modal-overlay {
+        height: 100vh;
+        height: 100dvh;
+        padding: 12px;
+    }
+
+    .keycode-modal-content {
+        width: 100%;
+        height: calc(100dvh - 24px);
+    }
+
+    .keycode-modal-header {
+        padding: 14px 16px;
+    }
+
+    .keycode-modal-body {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+        padding: 16px;
+    }
+
+    .custom-modal-content {
+        box-sizing: border-box;
+        width: min(calc(100% - 32px), 360px);
+    }
+}
+
+@media (max-width: 720px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px 12px 12px 64px;
+        gap: 9px;
+    }
+
+    .header-left {
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .profiles {
+        width: 100%;
+        padding-bottom: 2px;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+
+    .profiles::-webkit-scrollbar {
+        display: none;
+    }
+
+    .header-right {
+        display: grid;
+        grid-template-columns: 42px minmax(58px, 1fr) auto;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .language-icon-button {
+        width: 42px;
+        height: 44px;
+    }
+
+    #firmware-version {
+        min-width: 0;
+        font-size: 12px;
+        text-align: center;
+    }
+
+    #connect-btn {
+        min-height: 44px;
+        padding: 8px 12px;
+        font-size: 14px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 560px) {
+    .main-content {
+        padding-top: 22px;
+        gap: 14px;
+    }
+
+    .action-controls-main {
+        padding: 12px;
+    }
+
+    .action-control-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .action-slot-row,
+    .action-loop-row {
+        min-height: 40px;
+    }
+
+    .action-button-grid {
+        grid-column: auto;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .action-button-grid button {
+        min-height: 42px;
+    }
+
+    .config-item {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .config-item label {
+        width: 100%;
+    }
+
+    .key-input-wrapper {
+        min-width: 0;
+    }
+
+    #toggle-input-mode-btn {
+        margin-left: 0;
+    }
+
+    .modal-buttons,
+    .custom-modal-buttons {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 360px) {
+    .profiles {
+        gap: 6px;
+    }
+
+    .profile-slot {
+        flex-basis: 33px;
+        width: 33px;
+        height: 38px;
+    }
+
+    .header-right {
+        grid-template-columns: 40px minmax(52px, 1fr) auto;
+        gap: 6px;
+    }
+
+    .language-icon-button {
+        width: 40px;
+    }
+
+    #firmware-version {
+        font-size: 11px;
+    }
+
+    #connect-btn {
+        padding-inline: 8px;
+        font-size: 13px;
+    }
+}
