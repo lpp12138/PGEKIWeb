@@ -578,8 +578,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ERROR: 5,
     });
     const WEB_ACTION_FLAG_LOOP = 1;
-    const SENSOR_SENSITIVITY_MINIMUM = -30;
-    const SENSOR_SENSITIVITY_MAXIMUM = 30;
+    const SENSOR_SENSITIVITY_MINIMUM = -100;
+    const SENSOR_SENSITIVITY_MAXIMUM = 100;
     const SENSOR_SENSITIVITY_CONFIRM_TIMEOUT_MS = 1500;
     const WEB_OTA_PROTOCOL_VERSION = 1;
     const WEB_OTA_COMMAND_MAGIC = Object.freeze([0xA5, 0x5A]);
