@@ -8,10 +8,10 @@
       "path": "1.2.2/PGEKI2_ESP32.bin",
       "size": 1201040,
       "sha256": "7ee682934283c21e6d6e3ede575c9164e85fbbff2f7df95879782ebf857d45a0",
-      "notes": "侧键灵敏度范围扩至 ±100；当前触摸阈值在 -40 以下饱和，尚未经硬件验证",
+      "notes": "侧键灵敏度范围扩至 ±100；当前触摸阈值在 -40 以下饱和",
       "notesI18n": {
-        "zh-CN": "侧键灵敏度范围扩至 ±100；当前触摸阈值在 -40 以下饱和，尚未经硬件验证",
-        "en": "Expands side-key sensitivity to ±100; the current touch threshold saturates below -40. Not yet verified on hardware"
+        "zh-CN": "侧键灵敏度范围扩至 ±100；当前触摸阈值在 -40 以下饱和",
+        "en": "Expands side-key sensitivity to ±100; the current touch threshold saturates below -40."
       }
     },
     {
